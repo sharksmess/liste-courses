@@ -53,7 +53,7 @@ D-026 (humain) : essayer `typescript@7.0.2` et `eslint@10.13.0` (`latest`), repr
 ```
 Ces trois greffons sont charges par `eslint-config-next@16.4.3`. **Constat honnete** : le lint lui-meme a tourne sous ESLint 10.13.0 sur les fichiers essayes (`react/jsx-key`, `react-hooks/static-components`, `jsx-a11y/alt-text`, `@next/next/no-img-element` se declenchent normalement) ; l'incompatibilite constatee est celle des pairs declares, pas un plantage. La retrogradation en **9.39.5** (derniere de la ligne 9) suit D-026 : faire tourner trois greffons hors de la plage qu'ils declarent expose a des regles silencieusement fausses, et `pnpm peers check` reste vert. Apres retrogradation : `No peer dependency issues found` (code 0).
 
-**A reevaluer** (ligne de backlog demandee par `rules/dependencies.md`, a ajouter par l'orchestrateur, `000-backlog.md` etant hors du perimetre de 001) : TypeScript 7 quand `typescript-eslint` le supporte ; ESLint 10 quand `eslint-config-next` livre des greffons qui le declarent.
+**A reevaluer** : TypeScript 7 quand `typescript-eslint` le supporte ; ESLint 10 quand `eslint-config-next` livre des greffons qui le declarent. La ligne de backlog demandee par `rules/dependencies.md` est dans `docs/03-slices/000-backlog.md`, section « Reevaluations techniques » (D-039).
 
 ## Dependances directes retenues
 Toutes interrogees au registre le 2026-10-30 (`pnpm view <paquet> dist-tags`, `pnpm view <paquet>@<v> time`), toutes publiees depuis plus d'un jour, toutes `latest` sauf mention.
@@ -85,7 +85,7 @@ Non installe : `@playwright/test` (D-027). Aucun `dotenv` : le migrateur lit `DA
 - `unrs-resolver: false` — postinstall de repli qui telecharge un binaire si la dependance optionnelle de plateforme manque ; elle est installee (meme choix que Signet, ADR-0009).
 
 ## Audit
-`pnpm audit --prod --audit-level=high` : code 0. Un avis **modere** subsiste : GHSA-67mh-4wv8-2f99 (`esbuild <= 0.24.2`, serveur de developpement d'esbuild), chemin `apps__web>better-auth>drizzle-kit>@esbuild-kit/esm-loader>@esbuild-kit/core-utils>esbuild` (pair optionnel de better-auth). Sous le seuil ; aucun `overrides` ajoute dans cette tranche (Signet l'a corrige par `esbuild: ">=0.25.0"`) : a trancher par l'humain.
+`pnpm audit --prod` : « No known vulnerabilities found », code 0. Le seul avis releve a l'installation, GHSA-67mh-4wv8-2f99 (`esbuild <= 0.24.2`, serveur de developpement d'esbuild, modere), arrivait par `apps__web>better-auth>drizzle-kit>@esbuild-kit/esm-loader>@esbuild-kit/core-utils>esbuild` (pair optionnel de better-auth) ; il est corrige par l'override ci-dessous.
 
 **Overrides (securite)** — 2026-10-30, D-038 (humain) : `esbuild: ">=0.25.0"` dans `pnpm-workspace.yaml`, avis GHSA-67mh-4wv8-2f99, chemin ci-dessus. Apres `pnpm install` : esbuild resolu en 0.25.12 et 0.28.2, `pnpm audit --prod` « No known vulnerabilities found » (code 0), `pnpm peers check` sans probleme, `pnpm run check`, `pnpm test` (111 tests) et `bash scripts/ci-build.sh` verts.
 
