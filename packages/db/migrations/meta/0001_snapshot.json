@@ -1,0 +1,21 @@
+{
+  "id": "21291870-e092-4e2a-b5f2-779bcb6b056b",
+  "prevId": "6f0d53b5-e497-420a-bc9e-abd74e74b6ca",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {},
+  "enums": {},
+  "schemas": {
+    "lc": "lc",
+    "lc_auth": "lc_auth"
+  },
+  "views": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

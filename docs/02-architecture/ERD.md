@@ -66,7 +66,7 @@ Detail et options ecartees : [ADR-0005](ADR/0005-roles-postgres-fonctions-define
 |---|---|---|---|---|
 | `lc_owner` | **non** | `NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS NOLOGIN` | schemas `lc` et `lc_auth`, toutes les tables, fonctions `SECURITY INVOKER` | Aucun. Proprietaire inerte : sans politique, il ne voit rien (`FORCE ROW LEVEL SECURITY`). Le test anti-regression `FORCE` passe par `SET ROLE lc_owner` depuis la connexion d'administration des tests. |
 | `lc_app` | oui | `NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS LOGIN` | rien | Connexion de l'application (Route Handlers, Server Actions) : `DATABASE_URL`. Aucun acces a `lc_auth`. |
-| `lc_better_auth` | oui | idem `LOGIN` | rien | Connexion du seul module better-auth : `DATABASE_URL_AUTH`. Limite aux quatre tables de `lc_auth`. |
+| `lc_better_auth` | oui | idem `LOGIN` | rien | Connexion du seul module better-auth : `AUTH_DATABASE_URL` (nom fixe par le contrat de la tranche 001 ; `DATABASE_URL_AUTH` dans ADR-0005). Limite aux quatre tables de `lc_auth`. |
 | `lc_definer` | **non** | idem `NOLOGIN` | fonctions `SECURITY DEFINER` (§4), `lc.context_household_id()` | Atteignable uniquement par l'execution d'une fonction qu'il possede. |
 | role de migration | — | superutilisateur de l'instance locale ou de CI (connexion d'amorcage `DATABASE_URL_MIGRATE`), hors de ce tableau | rien a la fin d'une migration (tout est cede par `ALTER ... OWNER TO`) | Joue `pnpm db:migrate`. Ne sert jamais aux requetes applicatives. |
 
@@ -774,3 +774,37 @@ Q-1 et Q-5 tranchees ci-dessous.
 
 Point technique (pas une question metier) : la capacite de la version de better-auth retenue a
 laisser la base generer des `uuid` (§3.1) est a verifier a la premiere tranche.
+**Verifie en tranche 001 (better-auth 1.7.14)** : tables dans `lc_auth`, table utilisateur
+`app_user`, identifiants generes par la base. Configuration : adaptateur Drizzle (`provider: "pg"`,
+schema `@lc/db/schema` declare par `pgSchema("lc_auth")`) et `advanced.database.generateId: "uuid"`
+— avec un adaptateur pg qui declare `supportsUUIDs`, better-auth n'envoie pas d'`id` et le
+`DEFAULT lc.uuidv7()` s'applique. better-auth met lui-meme l'adresse en minuscules a l'inscription
+(Q-3) ; le `CHECK` reste la barriere. Aucun ecart d'ADR (D-029 leve, D-035).
+
+---
+
+## 9. Implementation (tranche 001) et ecarts
+
+Migrations (`packages/db/migrations`, journal Drizzle, appliquees par `src/migrate.ts` avec le
+migrateur de drizzle-orm ; historique dans le schema `drizzle`) :
+
+| Fichier | Nature | Contenu |
+|---|---|---|
+| `0000_schemas.sql` | generee | `CREATE SCHEMA lc`, `lc_auth` |
+| `0001_roles_context.sql` | `--custom` | roles et assertion (§1), `ALTER DEFAULT PRIVILEGES`, revocations, proprietaire des schemas, `lc.uuidv7()`, `lc.current_user_id()` |
+| `0002_tables.sql` | generee | les sept tables, contraintes et index de §3.1 a §3.4 |
+| `0003_auth_rls.sql` | `--custom` | proprietaire, RLS forcee, privileges et politiques de `lc_auth` |
+| `0004_household.sql` | `--custom` | proprietaire, RLS, privileges et politiques de `lc` ; `current_household_id`, `context_household_id`, `new_invite_code`, triggers de `membership`, `create_household` |
+
+Ecarts a la specification, tous mineurs :
+- **Variable de connexion de better-auth** : `AUTH_DATABASE_URL` (contrat de tranche), pas
+  `DATABASE_URL_AUTH` ; celle de `lc_app` est `DATABASE_URL`.
+- **Cles etrangeres** : noms generes par Drizzle (`membership_user_id_app_user_id_fk`, etc.), l'ERD
+  ne les nommait pas.
+- **`SET search_path`** pose aussi sur `lc.current_user_id()` et `lc.context_household_id()`
+  (§2 ne le mentionnait pas ; §4.10 le demande pour toutes les fonctions internes).
+- **`invite_code_definer_lookup`** est creee des la tranche 001 avec les autres politiques de la
+  table, bien que seule `join_household()` (tranche 002) pose `app.invite_code_lookup`.
+- **Trigger de compteur** : `membership_count` (`AFTER INSERT OR DELETE`) ; les deux triggers
+  d'invariant s'appellent comme leurs fonctions (`membership_protect_owner`, `membership_immutable`).
+- `lc.item`, `add_item` et `item_count_trg` : tranche 003 (contrat de 001, « NE touche PAS »).
