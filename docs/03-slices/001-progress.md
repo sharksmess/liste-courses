@@ -5,7 +5,7 @@ Tenu par l'implementeur apres **chaque commit**. C'est ce fichier, pas la conver
 ## Etat
 - Statut : implementation terminee, AC1 a AC11 verts ; en attente des trois relecteurs puis de `close-slice.sh`
 - Branche : slice/001-comptes-foyer
-- Dernier commit : faf70e4 docs(slice-001): record decisions D-030 to D-035 and frictions (dernier commit de code : d011e6c)
+- Dernier commit : e9785a9 docs(slice-001): add TS7/ESLint10 backlog line, fix ADR-0005 var name (dernier commit de dependances : 48bf72d)
 - Prochaine etape : relecteurs (`security-auditor`, `contract-guardian`, `code-reviewer`), visite guidee AC8 consignee dans la fiche de preuves, entree de journal de projet, `close-slice.sh` — par l'orchestrateur
 
 ## Contrat des tests pour l'implementeur (rapport de test-writer)
@@ -26,6 +26,10 @@ Tenu par l'implementeur apres **chaque commit**. C'est ce fichier, pas la conver
 - [x] Suite complete verte + `pnpm run check` + `bash scripts/ci-build.sh` + `pnpm audit --prod --audit-level=high`
 
 Resultats (2026-10-30, poste Windows) : `pnpm test` 10 fichiers, 111 tests verts ; `pnpm run check` vert ; `bash scripts/ci-build.sh` construit ; `pnpm audit --prod --audit-level=high` code 0 (un avis modere esbuild, ADR-0007).
+
+Correctifs humains (D-038, D-039) :
+- [x] 48bf72d build(deps): override esbuild for GHSA-67mh-4wv8-2f99 — `esbuild: ">=0.25.0"` (resolu en 0.25.12 et 0.28.2) ; `pnpm audit --prod` : « No known vulnerabilities found », code 0 ; `pnpm peers check` : aucun probleme, code 0 ; `pnpm run check` code 0 ; `pnpm test` 10 fichiers, 111 tests verts, code 0 ; `bash scripts/ci-build.sh` code 0.
+- [x] e9785a9 docs(slice-001): add TS7/ESLint10 backlog line, fix ADR-0005 var name — ligne de reevaluation dans `000-backlog.md`, ADR-0005 amende (`AUTH_DATABASE_URL`), renvoi de l'ERD §1 mis a jour. Aucun test modifie.
 
 ## Blocages
 Aucun. Risque D-029 leve tot (sign-up reel contre la base de test, juste apres les migrations `lc_auth`).
