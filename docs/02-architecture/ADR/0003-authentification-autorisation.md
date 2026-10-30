@@ -81,3 +81,14 @@ Les Server Actions, si une tranche en introduit, suivent exactement le meme ordr
 - Le PRD ajoute la recuperation de mot de passe, la verification d'adresse ou la modification du prenom.
 - Une montee de better-auth change `rateLimit`, `customRules`, les bornes de mot de passe ou le controle d'origine.
 - Une mise en ligne reelle est envisagee (risque R1 : suppression de compte et mineurs).
+
+## Amendement du 2026-10-30 — source de l'adresse IP du limiteur (D-040, D-043)
+Origine : audit-001, constat MAJEUR-1 (second passage : MINEUR-2). Sans reglage, better-auth 1.7.14 prend comme adresse du client la valeur unique de `X-Forwarded-For`, que le client choisit : un en-tete different a chaque requete ouvre un compteur neuf, et le limiteur de connexion ne s'applique plus.
+
+Sous `next start` sans proxy, aucune source sure n'existe : Next ne pose `X-Forwarded-For` depuis l'adresse du socket que si le client ne l'a pas deja envoye (`??=` dans `next/dist/server/base-server.js`), et il n'expose pas le socket aux route handlers.
+
+Decision (option a de D-040, decidee d'avance par l'humain ; D-043) : **aucun en-tete d'adresse n'est cru** tant qu'aucun proxy de confiance n'est declare. Configuration `advanced.ipAddress: { ipAddressHeaders: [] }`, sans `trustedProxies` (`apps/web/src/lib/auth-ip.ts`, branche dans `apps/web/src/lib/auth.ts`). Un `X-Forwarded-For` forge n'ouvre plus de compteur. Preuve : `tests/auth/rate-limit-ip.test.ts`, qui applique cette configuration a la fonction `getIP` de better-auth, avec un controle sur la configuration par defaut.
+
+Risque residuel accepte tant qu'il n'y a pas de mise en ligne (D-011) : toutes les requetes partagent le compteur de chaque chemin (`no-trusted-ip|<chemin>`). Un tiers qui envoie 3 connexions par 10 s fait refuser (429) celles de toute la famille.
+
+Signal de reexamen : avant toute mise en ligne, declarer le proxy reel (`ipAddressHeaders` + `trustedProxies`) et n'exposer le serveur que derriere lui (backlog, « Reevaluations techniques »), puis mettre a jour le test et cet amendement.

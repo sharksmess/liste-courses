@@ -5,8 +5,8 @@ Tenu par l'implementeur apres **chaque commit**. C'est ce fichier, pas la conver
 ## Etat
 - Statut : AC1 a AC11 verts ; correctifs des relecteurs (D-040, D-041) appliques ; en attente du second passage de `security-auditor` (D-040) puis de `close-slice.sh`
 - Branche : slice/001-comptes-foyer
-- Dernier commit de code : 9f7e66a test(auth): prove forged X-Forwarded-For shares one limiter key (le commit de documentation qui suit porte ce journal)
-- Prochaine etape (orchestrateur) : second passage de `security-auditor`, amendement d'ADR-0003 (hors perimetre, voir Blocages), visite guidee AC8 dans la fiche de preuves, entree de journal de projet, `close-slice.sh`
+- Dernier commit de code : 9f7e66a test(auth): prove forged X-Forwarded-For shares one limiter key ; dernier commit : `docs(slice-001): amend ADR-0003 with limiter IP source` (amendement d'ADR-0003, D-045 ; porte aussi ce journal)
+- Prochaine etape (orchestrateur) : visite guidee AC8 dans la fiche de preuves, entree de journal de projet, `close-slice.sh`
 
 ## Contrat des tests pour l'implementeur (rapport de test-writer)
 - Limiteur : `apps/web/src/lib/auth-rate-limit.ts`, `buildRateLimitOptions(env)` -> `{ enabled, customRules }`, regle `/sign-up/*` = `{ window: 10, max: 3 }`, ne lit pas `process.env`.
@@ -40,7 +40,7 @@ Correctifs apres relecture (D-040, D-041 ; audit-001, review-001) :
 Resultats apres ces correctifs : `pnpm test` 11 fichiers, 115 tests verts, code 0 ; `pnpm run check` code 0 ; `bash scripts/ci-build.sh` code 0 ; `pnpm audit --prod --audit-level=high` « No known vulnerabilities found », code 0 ; `pnpm peers check` « No peer dependency issues found », code 0.
 
 ## Blocages
-- **ADR-0003 hors perimetre** : D-040 demande un amendement date d'ADR-0003 (source de l'adresse IP du limiteur, option a). `docs/02-architecture/ADR/0003-*` n'est pas dans `.gates/scope-001.txt` : non ecrit. Contenu a porter : aucun en-tete d'adresse cru (`ipAddressHeaders: []`), raison (Next `??=` sur `X-Forwarded-For`, socket non expose), scenario 2 ouvert, reglage du proxy reel avant mise en ligne (D-043). Action humaine : `scope-add`, puis amendement.
+Aucun. L'amendement d'ADR-0003 sur la source de l'adresse IP du limiteur, bloque faute de perimetre, est ecrit depuis l'extension D-045.
 - Risque D-029 leve tot (sign-up reel contre la base de test, juste apres les migrations `lc_auth`).
 
 ## Decisions
