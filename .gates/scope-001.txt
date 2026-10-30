@@ -40,3 +40,5 @@ docs/04-runbooks/evidence/001.md
 docs/00-context/JOURNAL.md
 docs/00-context/journal/02-*
 .claude/agent-memory/**/*
+docs/03-slices/000-backlog.md
+docs/02-architecture/ADR/0005-roles-postgres-fonctions-definer.md
