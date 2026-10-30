@@ -64,5 +64,12 @@ Regroupements :
 ## Reevaluations techniques (hors tranches)
 - **TypeScript 7 et ESLint 10** : reevaluer quand `typescript-eslint` accepte TypeScript >= 7 en pair, et que `eslint-plugin-react`, `eslint-plugin-import` et `eslint-plugin-jsx-a11y` (charges par `eslint-config-next`) acceptent ESLint 10 en pair. Socle actuel : TypeScript 6.0.3, ESLint 9.39.5 (D-026, D-032, D-037, ADR-0007, ADR-0008).
 
+## Suites de la relecture de la tranche 001 (review-001, D-041)
+- **Contrainte de base franchie en 500** : traduire `23514` (CHECK de nom ou de prenom) en `422 VALIDATION_FAILED`, ou documenter l'invariant ; le `trim` de JS et `[[:space:]]` de Postgres ne comptent pas les memes espaces (review-001, suggestion 5).
+- **Branchement du limiteur au demarrage** : test pur de `parseServerEnv` avec `AUTH_RATE_LIMIT=off` et `APP_ENV=production`, qui doit lever (review-001, suggestion 6).
+- **Titre de test trop large** (`tests/isolation/households.test.ts`, « aucun droit d'ecriture direct ») : sondes `has_table_privilege` exactes sur `household` et `membership` (SELECT seul attendu), ou titre corrige (review-001, suggestion 7).
+- **Retouches de tests dans des commits dedies** : toute modification d'un test existant part dans un commit `test(...)` separe, pour qu'un auditeur l'isole (review-001, suggestion 8).
+- **Commentaire manquant** sur `Promise.resolve().then(...)` dans `apps/web/src/lib/auth.ts` (review-001, suggestion 9).
+
 ## Hors backlog (hors perimetre du PRD)
 Recuperation de mot de passe, suppression de compte et RGPD (R1), notifications, temps reel, plusieurs listes, historique, transfert du role de responsable, modification d'un article ou du prenom. Tout ajout passe par une mise a jour du PRD et une decision humaine.
