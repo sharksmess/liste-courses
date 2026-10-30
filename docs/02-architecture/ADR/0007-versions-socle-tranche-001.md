@@ -87,6 +87,8 @@ Non installe : `@playwright/test` (D-027). Aucun `dotenv` : le migrateur lit `DA
 ## Audit
 `pnpm audit --prod --audit-level=high` : code 0. Un avis **modere** subsiste : GHSA-67mh-4wv8-2f99 (`esbuild <= 0.24.2`, serveur de developpement d'esbuild), chemin `apps__web>better-auth>drizzle-kit>@esbuild-kit/esm-loader>@esbuild-kit/core-utils>esbuild` (pair optionnel de better-auth). Sous le seuil ; aucun `overrides` ajoute dans cette tranche (Signet l'a corrige par `esbuild: ">=0.25.0"`) : a trancher par l'humain.
 
+**Overrides (securite)** — 2026-10-30, D-038 (humain) : `esbuild: ">=0.25.0"` dans `pnpm-workspace.yaml`, avis GHSA-67mh-4wv8-2f99, chemin ci-dessus. Apres `pnpm install` : esbuild resolu en 0.25.12 et 0.28.2, `pnpm audit --prod` « No known vulnerabilities found » (code 0), `pnpm peers check` sans probleme, `pnpm run check`, `pnpm test` (111 tests) et `bash scripts/ci-build.sh` verts.
+
 ## Consequences acceptees
 - Deux outils restent une ligne majeure derriere `latest` jusqu'a la reevaluation.
 - Les versions sont epinglees exactement et le lockfile est committe ; Dependabot proposera les montees.
