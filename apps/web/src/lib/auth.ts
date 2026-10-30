@@ -12,7 +12,8 @@
  * - Prenom : schema du contrat `signUp` (trim, 1 a 30 points de code) applique
  *   par un hook avant la creation ; c'est la valeur trimee qui est enregistree.
  * - Prenom non modifiable (D-009) : `/update-user` est desactive.
- * - Limiteur : `buildRateLimitOptions` (actif sauf APP_ENV=test et off).
+ * - Limiteur : `buildRateLimitOptions` (actif sauf APP_ENV=test et off) ;
+ *   adresse du client : aucun en-tete cru (`lib/auth-ip.ts`, D-040).
  * - Controle d'origine : celui de better-auth, laisse actif (origine de
  *   BETTER_AUTH_URL seule admise).
  *
@@ -24,6 +25,7 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { APIError, createAuthMiddleware } from "better-auth/api";
 import { drizzle } from "drizzle-orm/node-postgres";
+import { IP_ADDRESS_OPTIONS } from "./auth-ip";
 import { buildRateLimitOptions } from "./auth-rate-limit";
 import { signUp } from "./contracts";
 import { getAuthPool } from "./db";
@@ -50,6 +52,7 @@ const DISABLED_PATHS = [
   "/get-access-token",
   "/refresh-token",
   "/update-session",
+  "/verify-password",
 ];
 
 const signUpName = signUp.input.shape.name;
@@ -97,6 +100,8 @@ function createAuth() {
     rateLimit: { ...buildRateLimitOptions(process.env), storage: "memory" },
     advanced: {
       database: { generateId: "uuid" },
+      // Aucun en-tete d'adresse cru sans proxy declare (D-040, lib/auth-ip.ts).
+      ipAddress: IP_ADDRESS_OPTIONS,
     },
     hooks: {
       before: createAuthMiddleware((ctx) => Promise.resolve().then(() => normalizeSignUpName(ctx.path, ctx.body))),
