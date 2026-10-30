@@ -66,12 +66,19 @@ export const createHousehold: ApiContract<typeof createHouseholdInput, typeof cr
  * DEFINER : seule lecture transverse aux foyers. Rien n'est revele d'un foyer
  * avant l'adhesion (US-05.2).
  *
- * Normalisation avant validation : retrait des espaces et des tirets, majuscules.
- * Alphabet de Crockford, sans I, L, O, U ; aucune substitution (ADR-0004).
+ * Normalisation avant validation (ADR-0004, D-025) : retrait des espaces et des
+ * tirets, majuscules, puis substitutions de Crockford O -> 0, I et L -> 1.
+ * Seul un caractere hors alphabet apres normalisation est refuse (ex. U).
  */
 export const InviteCodeInput = z
   .string()
-  .transform((s) => s.replace(/[\s-]/g, "").toUpperCase())
+  .transform((s) =>
+    s
+      .replace(/[\s-]/g, "")
+      .toUpperCase()
+      .replace(/O/g, "0")
+      .replace(/[IL]/g, "1"),
+  )
   .pipe(z.string().regex(/^[0-9A-HJKMNP-TV-Z]{10}$/));
 
 const joinHouseholdInput = z.object({
@@ -90,7 +97,9 @@ export const joinHousehold: ApiContract<typeof joinHouseholdInput, typeof joinHo
   errors: [
     { ...E.unauthenticated, trigger: E.unauthenticated.trigger + " — US-05.5" },
     { ...E.alreadyInHousehold, trigger: E.alreadyInHousehold.trigger + " — US-05.4" },
-    E.validation("code qui, normalise, ne fait pas 10 caracteres de l'alphabet de Crockford"),
+    E.validation(
+      "code qui, apres normalisation (espaces et tirets retires, majuscules, O->0, I/L->1), ne fait pas 10 caracteres de l'alphabet de Crockford",
+    ),
     {
       status: 404,
       code: "INVITE_CODE_INVALID",

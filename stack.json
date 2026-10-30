@@ -5,6 +5,7 @@
   "framework": "next",
   "orm": "drizzle",
   "database": "postgres",
+  "databaseVersion": "16",
   "auth": "better-auth",
   "billing": "none",
   "queue": "none",

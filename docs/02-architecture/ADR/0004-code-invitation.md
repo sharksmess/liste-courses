@@ -40,8 +40,11 @@ L'entropie est d'environ 50 bits, et l'alphabet est fait pour etre lu et dicte. 
   - La reprise sur collision vit a cote de l'index unique, dans `create_household` et `regenerate_invite_code`.
   - Retenu sur proposition de `db-architect` (ERD Q-5, D-020), plutot que le generateur de Node envisage d'abord.
 - **Affichage** : `XXXXX-XXXXX`.
-- **Saisie normalisee avant validation** : retrait des espaces et des tirets, puis mise en majuscules. La valeur normalisee doit faire 10 caracteres de l'alphabet, sinon `422`.
-  - Les substitutions de Crockford (`O`→`0`, `I`/`L`→`1`) ne sont **pas** appliquees : un caractere hors alphabet est refuse. Ce choix reste simple et peut etre rouvert.
+- **Saisie normalisee avant validation** (decision humaine D-025, qui corrige D-020) :
+  - retrait des espaces et des tirets ;
+  - mise en majuscules ;
+  - substitutions de Crockford : `O`→`0`, `I`→`1`, `L`→`1`.
+  - La valeur normalisee doit faire 10 caracteres de l'alphabet, sinon `422`. Seul un caractere hors alphabet apres normalisation est refuse (par exemple `U`, ou un signe de ponctuation).
 - **Stockage** : la valeur normalisee, en clair, avec une contrainte d'unicite globale (ERD).
   - Une collision a la generation (probabilite negligeable) est retentee par la fonction de creation ou de regeneration.
   - Regenerer remplace la valeur dans la meme transaction : l'ancienne n'existe plus nulle part.
@@ -52,7 +55,7 @@ L'entropie est d'environ 50 bits, et l'alphabet est fait pour etre lu et dicte. 
 - **Une fuite de la base expose tous les codes en clair.** Elle exposerait de toute facon les listes elles-memes. La parade est la regeneration (US-11.3). La base n'est pas mise en ligne (D-011).
 - Le code reste valide indefiniment tant que la responsable ne le regenere pas (decision produit D-008). Le risque R3 est accepte.
 - L'absence de limiteur sur « rejoindre » repose sur l'entropie. Raccourcir le code impose d'ajouter un limiteur, donc de rouvrir cet ADR.
-- Une saisie avec `O` au lieu de `0` est refusee au lieu d'etre corrigee. Si ce rejet gene a l'usage, ajouter les substitutions de Crockford est un changement local, sans migration.
+- Une saisie avec `O` au lieu de `0`, ou `I`/`L` au lieu de `1`, est corrigee en silence (D-025). Le code stocke et affiche ne contient jamais ces lettres, donc la correction ne peut pas viser un autre code. La normalisation vit dans le seul schema de validation applicatif ; la fonction de base n'accepte que la forme normalisee (ERD §4.4).
 
 ## Signal de reexamen
 - Le nombre de foyers depasse le millier, ou on observe des essais en serie sur la route « rejoindre ».
