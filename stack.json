@@ -10,6 +10,6 @@
   "queue": "none",
   "test": { "unit": "vitest", "e2e": "playwright" },
   "packageManager": "pnpm",
-  "tenancy": "undecided",
+  "tenancy": "shared-schema-rls",
   "frozenAt": null
 }

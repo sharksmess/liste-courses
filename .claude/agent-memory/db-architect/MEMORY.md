@@ -1,0 +1,2 @@
+- [Invariants du schema](project_schema_invariants.md) — schemas lc/lc_auth, roles lc_*, contexte app.user_id, 10 fonctions definer, compteurs CHECK
+- [Decisions rejetees](rejected_decisions.md) — jointure prenom, code en colonne, count+verrou, BYPASSRLS, owner LOGIN : raisons
