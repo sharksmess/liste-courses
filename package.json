@@ -1,0 +1,30 @@
+{
+  "name": "liste-courses",
+  "private": true,
+  "version": "0.1.0",
+  "packageManager": "pnpm@12.3.4",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "dev": "pnpm --filter @lc/web dev",
+    "build": "pnpm --filter @lc/web build",
+    "typecheck": "tsc -p tsconfig.json --noEmit && pnpm --filter @lc/web run typecheck && pnpm --filter @lc/db run typecheck",
+    "test": "vitest run",
+    "lint": "eslint .",
+    "check": "pnpm typecheck && pnpm lint",
+    "db:generate": "pnpm --filter @lc/db run generate",
+    "db:migrate": "pnpm --filter @lc/db run migrate"
+  },
+  "devDependencies": {
+    "@types/node": "24.19.2",
+    "@types/pg": "8.23.1",
+    "eslint": "9.39.5",
+    "eslint-config-next": "16.4.3",
+    "pg": "8.23.1",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.72.1",
+    "vitest": "5.0.5",
+    "zod": "4.6.7"
+  }
+}

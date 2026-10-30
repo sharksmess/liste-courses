@@ -1,0 +1,11 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+allowBuilds:
+  # ADR-0007 : binaire natif d'esbuild (tsx, drizzle-kit), verifie a l'installation.
+  esbuild: true
+  # ADR-0007 : postinstall de repli d'unrs-resolver (tire par
+  # eslint-config-next) qui telecharge le binding natif si la dependance
+  # optionnelle de plateforme manque ; elle est installee, le script n'a pas a
+  # s'executer (meme choix que Signet, ADR-0009).
+  unrs-resolver: false
