@@ -43,3 +43,4 @@ docs/00-context/journal/02-*
 docs/03-slices/000-backlog.md
 docs/02-architecture/ADR/0005-roles-postgres-fonctions-definer.md
 docs/04-runbooks/audits/*
+docs/02-architecture/ADR/0003-*
