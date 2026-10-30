@@ -32,6 +32,25 @@ jobs:
       # et psql) : aucune URL ne contient d'identifiants, meme factices.
       PGPASSWORD: ci_only_not_a_secret
       TEST_DATABASE_ADMIN_URL: postgresql://postgres@localhost:5432/postgres
+      # Tranche 001 (D-028). Valeurs inventees ; base jetable du service postgres.
+      TEST_DATABASE_NAME: liste_courses_test
+      TEST_APP_SCHEMAS: lc,lc_auth
+      TEST_APP_ROLES: lc_owner,lc_app,lc_better_auth,lc_definer
+      TEST_RLS_EXEMPT_TABLES: ""
+      # Mots de passe des roles de connexion, poses par le globalSetup apres la
+      # migration. Meme valeur que PGPASSWORD : les URL ci-dessous n'en portent
+      # aucun, pg retombe sur PGPASSWORD (aucune etape ci:db-setup necessaire).
+      TEST_ROLE_PASSWORDS: lc_app:ci_only_not_a_secret,lc_better_auth:ci_only_not_a_secret
+      TEST_DATABASE_URL_APP: postgresql://lc_app@localhost:5432/liste_courses_test
+      TEST_APP_BASE_URL: http://localhost:3210
+      # Environnement du serveur de test (prefixe retire par tests/_factory/env.ts).
+      TEST_SERVER_ENV_DATABASE_URL: postgresql://lc_app@localhost:5432/liste_courses_test
+      TEST_SERVER_ENV_AUTH_DATABASE_URL: postgresql://lc_better_auth@localhost:5432/liste_courses_test
+      TEST_SERVER_ENV_BETTER_AUTH_SECRET: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+      TEST_SERVER_ENV_BETTER_AUTH_URL: http://localhost:3210
+      TEST_SERVER_ENV_APP_ENV: test
+      # Limiteur coupe pour la suite : accepte seulement avec APP_ENV=test (ADR-0003).
+      TEST_SERVER_ENV_AUTH_RATE_LIMIT: "off"
     steps:
       - uses: actions/checkout@v5
         with:
