@@ -121,30 +121,30 @@ describe("AC2 : inscription refusee, aucune ligne creee (US-01.2, .3, .5, .6)", 
   });
 
   it.each(["pas-une-adresse", "sans-arobase.example.test", "a@", "@example.test"])(
-    "AC2 : adresse mal formee '%s' -> 400 INVALID_EMAIL",
+    "AC2 : adresse mal formee '%s' -> 400 VALIDATION_ERROR",
     async (email) => {
       const r = await rawSignUp({ email, password: DEFAULT_PASSWORD, name: "Marie" });
-      expectAuthError(r, 400, "INVALID_EMAIL", `adresse '${email}'`);
+      expectAuthError(r, 400, "VALIDATION_ERROR", `adresse '${email}'`);
       expect(await usersByEmail(email)).toHaveLength(0);
     },
   );
 
-  it("AC2 : adresse deja utilisee -> 422 USER_ALREADY_EXISTS, un seul compte", async () => {
+  it("AC2 : adresse deja utilisee -> 422 USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL, un seul compte", async () => {
     const email = uniqueEmail("ac2-dup");
     expectStatus(await rawSignUp({ email, password: DEFAULT_PASSWORD, name: "Premiere" }), 200, "premiere inscription");
     const second = await rawSignUp({ email, password: DEFAULT_PASSWORD, name: "Seconde" });
-    expectAuthError(second, 422, "USER_ALREADY_EXISTS", "rejeu de l'inscription");
+    expectAuthError(second, 422, "USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL", "rejeu de l'inscription");
     expect(hasSessionCookie(second.setCookies)).toBe(false);
     const rows = await usersByEmail(email);
     expect(rows).toHaveLength(1);
     expect(rows[0]?.name).toBe("Premiere");
   });
 
-  it("AC2 : adresse deja utilisee avec une autre casse -> 422 USER_ALREADY_EXISTS, un seul compte (Q-3)", async () => {
+  it("AC2 : adresse deja utilisee avec une autre casse -> 422 USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL, un seul compte (Q-3)", async () => {
     const email = uniqueEmail("ac2-dupcase");
     expectStatus(await rawSignUp({ email, password: DEFAULT_PASSWORD, name: "Premiere" }), 200, "premiere inscription");
     const second = await rawSignUp({ email: email.toUpperCase(), password: DEFAULT_PASSWORD, name: "Seconde" });
-    expectAuthError(second, 422, "USER_ALREADY_EXISTS", "inscription avec la meme adresse en majuscules");
+    expectAuthError(second, 422, "USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL", "inscription avec la meme adresse en majuscules");
     expect(await usersByEmail(email)).toHaveLength(1);
   });
 

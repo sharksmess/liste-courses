@@ -70,7 +70,7 @@ Le detail exact (types, politiques, ordre des instructions de `create_household`
 ## Contrat d'API
 | Route | Methode | Entree | Sorties | Role minimal | Idempotent sur |
 |---|---|---|---|---|---|
-| `/api/auth/sign-up/email` | POST | `email`, `password` (8 a 128), `name` (1 a 30 trime) | `200 { user }` + cookie ; 400 `INVALID_EMAIL`, `PASSWORD_TOO_SHORT`, `PASSWORD_TOO_LONG` ; 422 `VALIDATION_FAILED`, `USER_ALREADY_EXISTS` ; 429 | public | non : un rejeu donne `USER_ALREADY_EXISTS` |
+| `/api/auth/sign-up/email` | POST | `email`, `password` (8 a 128), `name` (1 a 30 trime) | `200 { user }` + cookie ; 400 `VALIDATION_ERROR` (adresse), `PASSWORD_TOO_SHORT`, `PASSWORD_TOO_LONG` ; 422 `VALIDATION_FAILED`, `USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL` (codes constates, D-030) ; 429 | public | non : un rejeu donne `USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL` |
 | `/api/auth/sign-in/email` | POST | `email`, `password` | `200 { user }` + cookie ; 401 `INVALID_EMAIL_OR_PASSWORD` ; 429 | public | rejouable |
 | `/api/auth/sign-out` | POST | — | `200 { success: true }` | public | oui |
 | `/api/me` | GET | — | `200 { user: { name }, household: null \| { name, role } }` ; 401 | authenticated | lecture |

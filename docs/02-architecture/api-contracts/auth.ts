@@ -53,7 +53,12 @@ export const signUp: AuthRouteContract<typeof signUpInput, typeof sessionOutput>
   input: signUpInput,
   output: sessionOutput,
   errors: [
-    { status: 400, code: "INVALID_EMAIL", trigger: "adresse mal formee (US-01.6)" },
+    {
+      status: 400,
+      code: "VALIDATION_ERROR",
+      trigger:
+        "adresse mal formee (US-01.6) : refusee par le schema de corps de better-auth 1.7.14 avant sa propre verification (code constate en tranche 001, D-030 ; INVALID_EMAIL n'est pas atteint)",
+    },
     { status: 400, code: "PASSWORD_TOO_SHORT", trigger: "mot de passe < 8 caracteres (US-01.2)" },
     { status: 400, code: "PASSWORD_TOO_LONG", trigger: "mot de passe > 128 caracteres (US-01.2)" },
     {
@@ -63,13 +68,14 @@ export const signUp: AuthRouteContract<typeof signUpInput, typeof sessionOutput>
     },
     {
       status: 422,
-      code: "USER_ALREADY_EXISTS",
-      trigger: "adresse deja utilisee par un compte (US-01.5, D-013) ; aucun second compte cree",
+      code: "USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL",
+      trigger:
+        "adresse deja utilisee par un compte, quelle que soit la casse (US-01.5, D-013, Q-3) ; aucun second compte cree (code de better-auth 1.7.14 constate en tranche 001, D-030)",
     },
     rateLimited,
   ],
   idempotency:
-    "non-idempotente : le premier appel cree le compte, un rejeu identique est refuse (USER_ALREADY_EXISTS) sans effet de bord.",
+    "non-idempotente : le premier appel cree le compte, un rejeu identique est refuse (USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL) sans effet de bord.",
 };
 
 /** US-02.1 — Connexion. */
