@@ -162,10 +162,16 @@ describe("AC5 : lc_app n'a aucun droit sur lc_auth ni sur lc.invite_code", () =>
          UNION ALL SELECT 'schema lc_auth CREATE', has_schema_privilege('lc_app', 'lc_auth', 'CREATE')
          UNION ALL SELECT 'table invite_code ' || p, has_table_privilege('lc_app', 'lc.invite_code', p)
            FROM unnest(ARRAY['SELECT','INSERT','UPDATE','DELETE','TRUNCATE','REFERENCES','TRIGGER']) AS p
-         UNION ALL SELECT 'table ' || t || ' ' || p, has_table_privilege('lc_app', 'lc_auth.' || t, p)
-           FROM unnest(ARRAY['app_user','session','account','verification']) AS t,
-                unnest(ARRAY['SELECT','INSERT','UPDATE','DELETE','TRUNCATE']) AS p`,
+         UNION ALL SELECT 'table ' || c.relname || ' ' || p, has_table_privilege('lc_app', c.oid, p)
+           FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace,
+                unnest(ARRAY['SELECT','INSERT','UPDATE','DELETE','TRUNCATE']) AS p
+          WHERE n.nspname = 'lc_auth' AND c.relname = ANY(ARRAY['app_user','session','account','verification'])`,
       );
+      // Tables de lc_auth designees par leur oid (pg_class est lisible sans USAGE) :
+      // un nom qualifie 'lc_auth.x' ne se resout pas sous lc_app, faute d'USAGE sur
+      // le schema (D-031). Les quatre tables doivent etre toutes sondees.
+      const authProbes = r.rows.filter((x) => /^table (app_user|session|account|verification) /.test(x.k));
+      expect(authProbes, "les quatre tables de lc_auth x cinq privileges").toHaveLength(20);
       const granted = r.rows.filter((x) => x.v).map((x) => x.k);
       expect(granted, "droits accordes a lc_app qui ne devraient pas l'etre").toEqual([]);
     });
