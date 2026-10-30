@@ -1,0 +1,23 @@
+
+# --- ajoute par saas-factory 1.6.5 ---
+.env
+.env.local
+.env.*.local
+*.local.ps1
+*.pem
+*.key
+node_modules/
+.next/
+dist/
+build/
+out/
+coverage/
+.turbo/
+.vercel/
+*.tsbuildinfo
+*.log
+.claude/worktrees/
+.claude/settings.local.json
+.claude/settings.json.bak-*
+.DS_Store
+Thumbs.db

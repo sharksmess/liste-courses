@@ -1,0 +1,14 @@
+# Registre des decisions
+
+Registre unique et chronologique de **toutes** les decisions du projet : humaines et d'agents, produit et techniques. Regle : `.claude/rules/documentation.md`. Le detail vit dans l'ADR, le journal de tranche ou la PR cites en lien ; ici, une ligne par decision.
+
+Decideur : `humain` pour toute decision de l'humain (gates, arbitrages, fusions, priorites) ; sinon le nom de l'agent.
+
+| ID | Date | Decision | Decideur | Portee | Lien |
+|---|---|---|---|---|---|
+| D-001 | 2026-10-30 | Socle `nextjs-drizzle-postgres`, fullstack TypeScript, sans facturation, sans file d'evenements, sans envoi d'e-mail. Options presentees : nextjs-drizzle-postgres, nestjs-prisma-postgres, fastapi-sqlalchemy-postgres. Raison : fullstack unifie, charge tres faible, seul profil avec infrastructure de test dans l'usine | humain | projet | ADR-0001 |
+| D-002 | 2026-10-30 | `billing` et `queue` renseignes `"none"` (et non `null`, reserve a « pas encore decide » comme `frozenAt`) | init-stack | projet | ADR-0001 |
+| D-003 | 2026-10-30 | `auth` = `better-auth` (defaut du profil, auto-heberge) a titre provisoire, a confirmer par l'ADR d'authentification de la phase 2 ; Clerk ecarte faute de besoin d'un prestataire tiers | init-stack | projet | ADR-0001 |
+| D-004 | 2026-10-30 | `tenancy` laisse a `undecided` : le PRD n'existe pas, la phase 2 tranche (regle de `/init-stack`) | init-stack | projet | ADR-0001 |
+| D-005 | 2026-10-30 | `templates/Makefile` non copie : sous Windows l'installeur 1.6.5 fournit `gates.ps1`, son equivalent (WINDOWS.md), deja present et reference par CLAUDE.md | init-stack | projet | FRICTION.md, 2026-10-30 |
+| D-006 | 2026-10-30 | Le premier commit du projet se fait sur la branche `chore/initialisation` (`git switch -c chore/initialisation`), tous hooks actifs, jamais sur `main` ; l'humain renomme ensuite lui-meme cette branche en `main` et cree le depot GitHub par `github-setup.ps1`. Raison : aucun chemin de l'usine ne permet le premier commit d'un projet neuf (le pre-commit refuse `main`, et aucune PR n'est possible sans depot distant). Ecarte : `git commit --no-verify` (sauterait aussi la recherche de secrets) | humain | projet | FRICTION.md, 2026-10-30 |

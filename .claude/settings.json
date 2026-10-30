@@ -1,0 +1,112 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "C:/dev/saas-factory/hooks/gate-check.sh",
+            "shell": "bash",
+            "timeout": 120
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "C:/dev/saas-factory/hooks/block-dangerous.sh",
+            "shell": "bash",
+            "timeout": 120
+          }
+        ]
+      },
+      {
+        "matcher": "Grep",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "C:/dev/saas-factory/hooks/guard-search.sh",
+            "shell": "bash",
+            "timeout": 60
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "C:/dev/saas-factory/hooks/verify.sh",
+            "shell": "bash",
+            "timeout": 120
+          }
+        ]
+      }
+    ]
+  },
+  "permissions": {
+    "defaultMode": "acceptEdits",
+    "allow": [
+      "Bash(git status*)",
+      "Bash(git diff*)",
+      "Bash(git log*)",
+      "Bash(git show*)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git switch *)",
+      "Bash(git fetch*)",
+      "Bash(git pull --ff-only*)",
+      "Bash(git rev-parse*)",
+      "Bash(git branch*)",
+      "Bash(git rebase origin/main*)",
+      "Bash(git merge-base*)",
+      "Bash(git ls-files*)",
+      "Bash(git grep*)",
+      "Bash(pnpm test*)",
+      "Bash(pnpm run check*)",
+      "Bash(pnpm typecheck*)",
+      "Bash(pnpm lint*)",
+      "Bash(pnpm run build*)",
+      "Bash(pnpm exec vitest*)",
+      "Bash(pnpm exec tsc*)",
+      "Bash(pnpm audit*)",
+      "Bash(pnpm view *)",
+      "Bash(pnpm outdated*)",
+      "Bash(bash scripts/close-slice.sh*)",
+      "Bash(bash scripts/ship-slice.sh*)",
+      "Bash(bash scripts/ship-branch.sh*)",
+      "Bash(gh pr view*)",
+      "Bash(gh pr create*)",
+      "Bash(gh pr edit*)",
+      "Bash(gh pr checks*)",
+      "Bash(gh auth status*)",
+      "Bash(gh run view*)",
+      "Bash(gh run list*)"
+    ],
+    "deny": [
+      "Read(./.env)",
+      "Read(./.env.local)",
+      "Read(./.env.*.local)",
+      "Read(./**/.env)",
+      "Read(./**/.env.local)",
+      "Read(./**/.env.*.local)",
+      "Edit(./.env.*.local)",
+      "Edit(./.env.local)",
+      "Edit(./.env)",
+      "Write(./.env)",
+      "Write(./.env.local)",
+      "Write(./.env.*.local)",
+      "Bash(git push --force*)",
+      "Bash(git commit --no-verify*)",
+      "Bash(gh pr merge*)"
+    ]
+  },
+  "env": {
+    "CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS": "4"
+  }
+}
