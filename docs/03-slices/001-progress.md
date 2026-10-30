@@ -5,7 +5,7 @@ Tenu par l'implementeur apres **chaque commit**. C'est ce fichier, pas la conver
 ## Etat
 - Statut : implementation terminee, AC1 a AC11 verts ; en attente des trois relecteurs puis de `close-slice.sh`
 - Branche : slice/001-comptes-foyer
-- Dernier commit de code : d011e6c ci(slice-001): set test variables and build environment (puis commit de documentation)
+- Dernier commit : faf70e4 docs(slice-001): record decisions D-030 to D-035 and frictions (dernier commit de code : d011e6c)
 - Prochaine etape : relecteurs (`security-auditor`, `contract-guardian`, `code-reviewer`), visite guidee AC8 consignee dans la fiche de preuves, entree de journal de projet, `close-slice.sh` — par l'orchestrateur
 
 ## Contrat des tests pour l'implementeur (rapport de test-writer)
