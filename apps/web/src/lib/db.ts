@@ -17,13 +17,27 @@ const { Pool: PgPool } = pg;
 let appPool: Pool | null = null;
 let authPool: Pool | null = null;
 
+/**
+ * Une connexion inactive qui tombe (redemarrage de Postgres, coupure reseau)
+ * emet `error` sur le pool ; sans ecouteur, Node arrete le processus. On
+ * journalise le seul SQLSTATE : jamais l'URL, le message (qui peut citer un
+ * role ou un hote) ni un secret.
+ */
+function createPool(connectionString: string, label: "app" | "auth"): Pool {
+  const pool = new PgPool({ connectionString });
+  pool.on("error", (error: unknown) => {
+    console.error(`[db] pool ${label} : connexion inactive perdue (SQLSTATE ${sqlState(error) ?? "absent"})`);
+  });
+  return pool;
+}
+
 function appPoolOf(): Pool {
-  appPool ??= new PgPool({ connectionString: getServerEnv().DATABASE_URL });
+  appPool ??= createPool(getServerEnv().DATABASE_URL, "app");
   return appPool;
 }
 
 export function getAuthPool(): Pool {
-  authPool ??= new PgPool({ connectionString: getServerEnv().AUTH_DATABASE_URL });
+  authPool ??= createPool(getServerEnv().AUTH_DATABASE_URL, "auth");
   return authPool;
 }
 
