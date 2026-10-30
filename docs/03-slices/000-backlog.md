@@ -61,5 +61,8 @@ Regroupements :
 - **Ecran** : la liste des membres ; « retirer » pour la responsable, « quitter » pour un membre.
 - **Coupure immediate** : apres le retrait, la session encore ouverte du membre retire recoit `403 NO_HOUSEHOLD` sur la liste.
 
+## Reevaluations techniques (hors tranches)
+- **TypeScript 7 et ESLint 10** : reevaluer quand `typescript-eslint` accepte TypeScript >= 7 en pair, et que `eslint-plugin-react`, `eslint-plugin-import` et `eslint-plugin-jsx-a11y` (charges par `eslint-config-next`) acceptent ESLint 10 en pair. Socle actuel : TypeScript 6.0.3, ESLint 9.39.5 (D-026, D-032, D-037, ADR-0007, ADR-0008).
+
 ## Hors backlog (hors perimetre du PRD)
 Recuperation de mot de passe, suppression de compte et RGPD (R1), notifications, temps reel, plusieurs listes, historique, transfert du role de responsable, modification d'un article ou du prenom. Tout ajout passe par une mise a jour du PRD et une decision humaine.

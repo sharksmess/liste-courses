@@ -66,7 +66,7 @@ Detail et options ecartees : [ADR-0005](ADR/0005-roles-postgres-fonctions-define
 |---|---|---|---|---|
 | `lc_owner` | **non** | `NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS NOLOGIN` | schemas `lc` et `lc_auth`, toutes les tables, fonctions `SECURITY INVOKER` | Aucun. Proprietaire inerte : sans politique, il ne voit rien (`FORCE ROW LEVEL SECURITY`). Le test anti-regression `FORCE` passe par `SET ROLE lc_owner` depuis la connexion d'administration des tests. |
 | `lc_app` | oui | `NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS LOGIN` | rien | Connexion de l'application (Route Handlers, Server Actions) : `DATABASE_URL`. Aucun acces a `lc_auth`. |
-| `lc_better_auth` | oui | idem `LOGIN` | rien | Connexion du seul module better-auth : `AUTH_DATABASE_URL` (nom fixe par le contrat de la tranche 001 ; `DATABASE_URL_AUTH` dans ADR-0005). Limite aux quatre tables de `lc_auth`. |
+| `lc_better_auth` | oui | idem `LOGIN` | rien | Connexion du seul module better-auth : `AUTH_DATABASE_URL` (nom fixe par le contrat de la tranche 001 ; ADR-0005 amende, D-039). Limite aux quatre tables de `lc_auth`. |
 | `lc_definer` | **non** | idem `NOLOGIN` | fonctions `SECURITY DEFINER` (§4), `lc.context_household_id()` | Atteignable uniquement par l'execution d'une fonction qu'il possede. |
 | role de migration | — | superutilisateur de l'instance locale ou de CI (connexion d'amorcage `DATABASE_URL_MIGRATE`), hors de ce tableau | rien a la fin d'une migration (tout est cede par `ALTER ... OWNER TO`) | Joue `pnpm db:migrate`. Ne sert jamais aux requetes applicatives. |
 

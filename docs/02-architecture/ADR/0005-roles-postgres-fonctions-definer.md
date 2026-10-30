@@ -5,6 +5,7 @@
 - **Phase** : 2 — architecture
 - **Auteur** : `db-architect`
 - **Specification detaillee** : [ERD](../ERD.md) §1 (roles, privileges), §2 (contexte), §4 (fonctions), §5 (bornes)
+- **Amendement du 2026-10-30 (D-039)** : la variable de connexion de better-auth s'appelle `AUTH_DATABASE_URL` (nom fixe par le contrat de la tranche 001 et utilise par l'application), et non `DATABASE_URL_AUTH` comme ecrit initialement. Aucun autre changement.
 
 ## Contexte
 L'ADR-0002 retient `shared-schema-rls` et derive le foyer de l'utilisateur de session. Elle renvoie
@@ -138,7 +139,7 @@ la base, independante du chemin d'ecriture et du niveau d'isolation.
   aucun role ne les a.
 - Changer une borne (10, 200) est une migration qui modifie un `CHECK` : c'est voulu, la borne n'a
   qu'un emplacement.
-- Une connexion de plus (`DATABASE_URL_AUTH`) pour better-auth, avec son mot de passe a poser par
+- Une connexion de plus (`AUTH_DATABASE_URL`) pour better-auth, avec son mot de passe a poser par
   l'humain et la CI.
 - Les fonctions `SECURITY DEFINER` et leurs politiques s'ecrivent a la main dans des migrations
   `drizzle-kit generate --custom`. Drizzle ne les voit pas : le test de catalogue et la revue sont
