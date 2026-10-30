@@ -77,3 +77,56 @@ Périmètre : `git diff 97fcbd4..HEAD` sur la branche `slice/001-comptes-foyer`.
   - Aucune donnée sensible passée d'un Server Component à un Client Component : seuls le prénom, le nom du foyer et le rôle de l'utilisateur lui-même sont rendus.
 
 AUDIT: FAIL
+
+## 2026-10-30 — second passage de security-auditor (diff 70919b4..61b46d0)
+
+## Audit de sécurité de la tranche 001, second passage
+
+**Verdict : PASS.** Le MAJEUR-1 du premier passage est corrigé : un `X-Forwarded-For` forgé n'ouvre plus de nouveau compteur. Le MINEUR-1 est fermé (`/verify-password` désactivé). Il reste un seul constat, MINEUR, de documentation.
+
+Périmètre : `git diff 70919b4..HEAD`, plus le diff depuis le premier passage (`b29cb6a..HEAD`). Lecture seule, `pnpm test` non lancé. Je reprends tes résultats : 115 tests verts, `pnpm audit --prod --audit-level=high` sans vulnérabilité.
+
+### Statut des constats du premier passage
+
+**MAJEUR-1 (limiteur contournable par `X-Forwarded-For`) : corrigé pour le scénario 1, scénario 2 accepté par l'humain.**
+- **Réglage branché :** `apps/web/src/lib/auth.ts:101-104` passe `advanced.ipAddress: IP_ADDRESS_OPTIONS`, soit `{ ipAddressHeaders: [] }` (`apps/web/src/lib/auth-ip.ts:17`).
+- **Vérifié dans le code installé de better-auth 1.7.14.** Une seule résolution est présente dans `node_modules` (better-auth@1.7.14_drizzle-_898bd9…, plus @better-auth+core@1.7.14).
+  - Dans `@better-auth/core/dist/utils/ip.mjs`, la fonction `getIP` prend `ipAddressHeaders || DEFAULT_IP_HEADERS`.
+  - En JavaScript, `[]` compte comme vrai : la valeur par défaut `["x-forwarded-for"]` n'est donc pas utilisée.
+  - La boucle sur les en-têtes ne lit rien. Aucun en-tête n'est lu, que ce soit `x-forwarded-for`, `x-real-ip`, `cf-connecting-ip` ou un autre.
+  - Résultat : la fonction rend `127.0.0.1` en développement et en test, `null` en production.
+- **Le limiteur appelle bien cette fonction.** Dans `better-auth/dist/api/rate-limiter/index.mjs:242-248`, il appelle `getIP(req, ctx.options)` avec les options de `betterAuth()`. Il retombe sur `no-trusted-ip|<chemin>` quand l'adresse vaut `null`, puisque `disableIpTracking` n'est pas posé.
+- **Côté Next.** Next pose `X-Forwarded-For` lui-même, mais cela n'a plus d'effet : aucun en-tête n'est lu. Il n'existe pas d'autre source d'adresse côté better-auth.
+- **Le test `tests/auth/rate-limit-ip.test.ts` n'est pas tautologique.**
+  - `getIP` est la même fonction que celle du limiteur : `better-auth/api` la ré-exporte depuis `@better-auth/core/utils/ip`.
+  - Le cas témoin (configuration par défaut, `null`) montre deux clés distinctes pour deux en-têtes forgés.
+  - Avec notre configuration, six variantes donnent une clé unique, qui ne vient pas d'une adresse forgée : adresses IPv4 et IPv6, valeur multiple, `x-real-ip` et `cf-connecting-ip`, absence d'en-tête.
+  - Limite : le branchement dans `auth.ts` n'est vérifié que par une expression régulière sur le source, pas par la configuration réellement chargée. Combiné avec la lecture du limiteur ci-dessus, c'est suffisant ; ce n'est pas un constat.
+- **Risque résiduel accepté (scénario 2, D-043, humain).** En production, toutes les requêtes partagent le compteur de chaque chemin. Un script qui envoie 3 connexions toutes les 10 s fait refuser (429) les connexions de toute la famille. Ce risque est accepté tant qu'il n'y a pas de mise en ligne (D-011). Il est inscrit au backlog (`docs/03-slices/000-backlog.md`, « Adresse IP du limiteur avant toute mise en ligne »). Non bloquant.
+
+**MINEUR-1 (`/verify-password` actif) : corrigé.**
+- La route est dans `DISABLED_PATHS` (`apps/web/src/lib/auth.ts:55`).
+- Dans `better-auth/dist/api/index.mjs:167-169`, `onRequest` renvoie 404 avant le limiteur et avant la route. La comparaison se fait sur le chemin normalisé, et la route est bien déclarée `"/verify-password"` (`routes/password.mjs:167`).
+
+### Gestionnaire d'erreur des pools pg
+`apps/web/src/lib/db.ts:20-33` n'écrit dans le journal que le libellé du pool (`app` ou `auth`) et `sqlState(error)`. `sqlState` ne lit que la propriété `code` quand c'est une chaîne (`db.ts:72-78`). Le journal ne contient ni l'URL, ni le message, ni un secret. Aucun constat.
+
+### Régressions
+Depuis le premier passage, seuls trois fichiers de code ont changé : `auth.ts`, `auth-ip.ts` et `db.ts`. Le reste n'est que de la documentation et le périmètre de la tranche. Aucune régression : l'isolation entre foyers, `withUser` et les fonctions à privilèges sont inchangés.
+
+### Nouveau constat
+
+**MINEUR-2. L'ADR-0003 ne dit pas encore d'où vient l'adresse IP du limiteur.**
+- **Emplacement :** `docs/02-architecture/ADR/0003-*` (non modifié).
+- **Scénario :**
+  1. Lors d'une future mise en ligne, quelqu'un lit l'ADR d'authentification pour préparer le déploiement.
+  2. Il n'y voit pas que le limiteur ne croit aucun en-tête.
+  3. Il ajoute un proxy, ou réactive `ipAddressHeaders` sans `trustedProxies`, et le scénario 1 revient.
+- **Ce qui atténue :**
+  - D-043 est complet : le pourquoi, les options écartées et le risque restant y sont.
+  - La ligne de backlog demande déjà de mettre l'ADR-0003 à jour.
+  - Le test casse si `auth.ts` mentionne `trustedProxies` ou `ipAddressHeaders`.
+- **Mon jugement :** le registre et le backlog suffisent à fermer le MAJEUR. L'ADR reste une dette de documentation à rattraper quand l'extension de périmètre sera accordée.
+- **Remédiation :** amender l'ADR-0003 en renvoyant à D-040 et D-043 dès que l'humain étend le périmètre.
+
+AUDIT: PASS
