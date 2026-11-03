@@ -1,0 +1,16 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+allowBuilds:
+  # ADR-0007 : binaire natif d'esbuild (tsx, drizzle-kit), verifie a l'installation.
+  esbuild: true
+  # ADR-0007 : postinstall de repli d'unrs-resolver (tire par
+  # eslint-config-next) qui telecharge le binding natif si la dependance
+  # optionnelle de plateforme manque ; elle est installee, le script n'a pas a
+  # s'executer (meme choix que Signet, ADR-0009).
+  unrs-resolver: false
+overrides:
+  # D-038, GHSA-67mh-4wv8-2f99 : le serveur de developpement d'esbuild <= 0.24.2
+  # repond a toute origine. Chemin : apps__web > better-auth > drizzle-kit >
+  # @esbuild-kit/esm-loader > @esbuild-kit/core-utils > esbuild.
+  esbuild: ">=0.25.0"
