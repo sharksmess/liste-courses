@@ -80,52 +80,52 @@ La source de verite est `docs/02-architecture/api-contracts/auth.ts` et `househo
 
 ## Criteres d'acceptation
 <!-- Format lu par scripts/close-slice.sh : « - [ ] AC1 — titre », coche « - [x] » une fois prouve. -->
-- [ ] AC1 — **Inscription nominale** (US-01.1, .4, .7, .8)
+- [x] AC1 — **Inscription nominale** (US-01.1, .4, .7, .8)
   - Une inscription avec une adresse valide, un mot de passe de 8 caracteres puis de 128, et un prenom `"  Marie  "` cree le compte, ouvre une session et enregistre le prenom `"Marie"`.
   - Juste apres, `GET /api/me` rend `household: null`.
   - Aucun e-mail n'est envoye : aucune fonction d'envoi n'est configuree, ce que verifie un test de la configuration.
-- [ ] AC2 — **Inscription refusee** (US-01.2, .3, .5, .6), sans aucune ligne creee dans `app_user` :
+- [x] AC2 — **Inscription refusee** (US-01.2, .3, .5, .6), sans aucune ligne creee dans `app_user` :
   - mot de passe de 7 caracteres, puis de 129 ;
   - prenom vide, fait d'espaces, ou de 31 points de code. A l'inverse, 30 points de code dont des emoji sont acceptes (Q-2) ;
   - adresse mal formee ;
   - adresse deja utilisee, y compris avec une autre casse (Q-3).
   - Les statuts et codes sont ceux du contrat `signUp`.
-- [ ] AC3 — **Connexion et deconnexion** (US-02.1, .2, .4, .5)
+- [x] AC3 — **Connexion et deconnexion** (US-02.1, .2, .4, .5)
   - Les bons identifiants ouvrent une session.
   - Un mauvais mot de passe et une adresse inconnue donnent le meme statut, le meme code et le meme message.
   - Apres `sign-out`, l'ancien cookie donne `401 UNAUTHENTICATED` sur `GET /api/me`.
   - Sans session, `GET /api/me` et `POST /api/household` donnent `401`, et les pages du foyer redirigent vers la connexion.
-- [ ] AC4 — **Limiteur** (US-02.3, ADR-0003)
+- [x] AC4 — **Limiteur** (US-02.3, ADR-0003)
   - Test pur de la fonction de configuration : actif par defaut, avec la regle d'inscription ecrite chez nous.
   - `off` est accepte seulement avec `APP_ENV=test`.
   - `off` avec `production`, avec `development` ou sans `APP_ENV`, et toute valeur invalide, levent au demarrage.
-- [ ] AC5 — **Isolation entre foyers**, avec deux foyers reels A et B, chacun avec sa responsable :
+- [x] AC5 — **Isolation entre foyers**, avec deux foyers reels A et B, chacun avec sa responsable :
   - Par l'API, `GET /api/me` de A ne contient rien de B.
   - Directement en base sous `lc_app`, avec `app.user_id` = responsable de A : `household`, `membership` et `invite_code` ne rendent aucune ligne de B, et toute ecriture visant B est refusee ou touche 0 ligne.
   - Sans `app.user_id`, ou avec un utilisateur sans foyer, aucune ligne n'est visible.
   - `lc_app` n'a aucun droit sur `lc_auth` ni sur `lc.invite_code`.
-- [ ] AC6 — **Creation du foyer** (US-03.1, .3)
+- [x] AC6 — **Creation du foyer** (US-03.1, .3)
   - Un compte sans foyer cree « Famille Martin » et recoit `201 { name, role: "owner" }`.
   - `GET /api/me` rend alors ce foyer avec le role `owner`.
   - En base : une seule appartenance (`owner`, `display_name` = prenom), `member_count` = 1, `item_count` = 0, et un code de 10 caracteres de l'alphabet de Crockford.
   - La page du foyer affiche son nom et une liste vide.
-- [ ] AC7 — **Creation refusee et cas limites** (US-03.2, .4)
+- [x] AC7 — **Creation refusee et cas limites** (US-03.2, .4)
   - Nom vide, fait d'espaces, ou de 51 points de code : `422`, et aucun foyer n'est cree.
   - Un compte qui a deja un foyer : `409 ALREADY_IN_HOUSEHOLD`, sans second foyer.
   - **Concurrence** : deux `POST /api/household` simultanes du meme compte donnent un seul `201` et un seul `409`, et un seul foyer existe.
-- [ ] AC8 — **Page « sans foyer »** (US-04)
+- [x] AC8 — **Page « sans foyer »** (US-04)
   - Un compte connecte sans foyer voit la page qui propose « creer un foyer » et « rejoindre avec un code ».
   - Une fois qu'il a un foyer, il voit la page du foyer et non plus celle-ci.
   - Les pages sont prouvees par lecture du HTML rendu par le serveur, et par une visite guidee consignee dans la fiche de preuves.
-- [ ] AC9 — **Garanties de la base** (ADR-0005, `rules/drizzle-postgres.md`)
+- [x] AC9 — **Garanties de la base** (ADR-0005, `rules/drizzle-postgres.md`)
   - Le test de catalogue de l'usine est vert.
   - `FORCE ROW LEVEL SECURITY` s'applique au proprietaire : sous `SET ROLE lc_owner`, aucune ligne n'est visible sans contexte.
   - `lc.create_household` appelee sans `app.user_id` leve `LC001`.
   - Une fonction creee apres coup sous le role de migration n'est pas executable par PUBLIC.
   - Le trigger refuse la suppression de la ligne `owner` (`LC007`), meme sous un role qui contourne la RLS.
   - Les quatre roles n'ont ni SUPERUSER ni BYPASSRLS.
-- [ ] AC10 — **Prenom non modifiable** (ADR-0003, D-009) : la route de mise a jour de profil de better-auth ne peut pas changer `name` (refus ou route absente), ce que verifie un test.
-- [ ] AC11 — **Controle d'origine** (ADR-0003) : une inscription avec un en-tete `Origin` etranger est refusee, et aucun compte n'est cree.
+- [x] AC10 — **Prenom non modifiable** (ADR-0003, D-009) : la route de mise a jour de profil de better-auth ne peut pas changer `name` (refus ou route absente), ce que verifie un test.
+- [x] AC11 — **Controle d'origine** (ADR-0003) : une inscription avec un en-tete `Origin` etranger est refusee, et aucun compte n'est cree.
 
 ## Anti-regression
 - La suite de l'usine (`tests/_factory/db-catalog.test.ts`) reste verte.

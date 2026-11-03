@@ -5,3 +5,4 @@ Historique du projet, **une entree par etape franchie** (tranche livree, adoptio
 | # | Dates | Etape | Resultat | Preuves |
 |---|---|---|---|---|
 | 01 | 2026-10-30 | Initialisation du socle | `stack.json` ecrit, socle non gele | [01](journal/01-initialisation-du-socle.md), ADR-0001 |
+| 02 | 2026-10-30 au 2026-11-03 | Cadrage et tranche 001 (comptes et creation du foyer) | PRD et architecture approuves ; tranche 001 close, relecteurs PASS | [02](journal/02-tranche-001-comptes-foyer.md), `docs/04-runbooks/evidence/001.md` |
