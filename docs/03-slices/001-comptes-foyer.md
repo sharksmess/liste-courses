@@ -99,7 +99,7 @@ La source de verite est `docs/02-architecture/api-contracts/auth.ts` et `househo
   - Test pur de la fonction de configuration : actif par defaut, avec la regle d'inscription ecrite chez nous.
   - `off` est accepte seulement avec `APP_ENV=test`.
   - `off` avec `production`, avec `development` ou sans `APP_ENV`, et toute valeur invalide, levent au demarrage.
-- [x] AC5 — **Isolation entre foyers**, avec deux foyers reels A et B, chacun avec sa responsable :
+- [x] AC5 — **Isolation tenant (entre foyers, le foyer etant le tenant, ADR-0002)**, avec deux foyers reels A et B, chacun avec sa responsable :
   - Par l'API, `GET /api/me` de A ne contient rien de B.
   - Directement en base sous `lc_app`, avec `app.user_id` = responsable de A : `household`, `membership` et `invite_code` ne rendent aucune ligne de B, et toute ecriture visant B est refusee ou touche 0 ligne.
   - Sans `app.user_id`, ou avec un utilisateur sans foyer, aucune ligne n'est visible.
