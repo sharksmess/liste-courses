@@ -8,8 +8,7 @@
  *   data-testid="invite-code", data-testid="regenerate-invite-code".
  */
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import * as messages from "../../apps/web/src/ui/messages";
-import { messageFor } from "../../apps/web/src/ui/messages";
+import { joinErrorMessage, messageFor } from "../../apps/web/src/ui/messages";
 import { createAccount } from "../helpers/auth";
 import { closePools, resetDatabase } from "../helpers/db";
 import { describePage, getPage } from "../helpers/household";
@@ -155,16 +154,6 @@ describe("AC8 : ecran du code (page rendue)", () => {
 });
 
 describe("AC7 : choix du message du formulaire « rejoindre » (fonction pure joinErrorMessage)", () => {
-  // La fonction est ajoutee apres ces tests ; l'import par espace de noms evite
-  // de casser le typecheck avant son existence et echoue ici, clairement, si elle manque.
-  function joinErrorMessage(status: number, code: string | null): string {
-    const candidate: unknown = (messages as Record<string, unknown>)["joinErrorMessage"];
-    if (typeof candidate !== "function") throw new Error("apps/web/src/ui/messages.ts doit exporter joinErrorMessage(status, code)");
-    const result: unknown = Reflect.apply(candidate, undefined, [status, code]);
-    if (typeof result !== "string") throw new Error("joinErrorMessage doit rendre une chaine");
-    return result;
-  }
-
   it("AC7 : un 422 VALIDATION_FAILED affiche le message de INVITE_CODE_INVALID, pas le message de longueur du champ", () => {
     expect(joinErrorMessage(422, "VALIDATION_FAILED")).toBe(messageFor(404, "INVITE_CODE_INVALID"));
     expect(joinErrorMessage(422, "VALIDATION_FAILED")).not.toBe(messageFor(422, "VALIDATION_FAILED"));
