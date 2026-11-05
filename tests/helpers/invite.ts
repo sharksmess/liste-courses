@@ -44,7 +44,6 @@ export function displayed(stored: string): string {
 
 /** Codes bien formes (alphabet de Crockford) que nul foyer de test ne porte, a collision negligeable pres. */
 export const UNKNOWN_CODE = "ZZZZZ-ZZZZZ";
-export const UNKNOWN_CODE_STORED = "ZZZZZZZZZZ";
 
 export async function householdIdOf(userId: string): Promise<string> {
   const id = (await membershipsOfUser(userId))[0]?.household_id;
@@ -122,11 +121,11 @@ export async function openAppTx(userId: string): Promise<AppTx> {
   const client = await appPool().connect();
   try {
     await client.query("BEGIN");
-    const who = await client.query<{ u: string; super: string; pid: number }>(
-      "SELECT current_user AS u, current_setting('is_superuser') AS super, pg_backend_pid() AS pid",
+    const who = await client.query<{ u: string; super: string; bypass: boolean; pid: number }>(
+      "SELECT current_user AS u, current_setting('is_superuser') AS super, (SELECT rolbypassrls FROM pg_roles WHERE rolname = current_user) AS bypass, pg_backend_pid() AS pid",
     );
     const row = who.rows[0];
-    if (row?.u !== "lc_app" || row.super !== "off") {
+    if (row?.u !== "lc_app" || row.super !== "off" || row.bypass !== false) {
       throw new Error(`[tests] la connexion applicative n'est pas lc_app sans privilege : ${JSON.stringify(row)}`);
     }
     await client.query("SELECT set_config('app.user_id', $1, true)", [userId]);
