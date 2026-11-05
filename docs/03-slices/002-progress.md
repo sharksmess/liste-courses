@@ -3,17 +3,17 @@
 Tenu par l'implementeur apres **chaque commit**. C'est ce fichier, pas la conversation, qui permet de reprendre apres une interruption.
 
 ## Etat
-- Statut : implementee, en attente des relecteurs
+- Statut : implementee, relecture faite, correctifs des points 8 et 14 appliques (`docs/04-runbooks/audits/review-002.md`)
 - Branche : slice/002-rejoindre-foyer
-- Dernier commit de code : 847aa2b (UI)
-- Prochaine etape : orchestrateur, trois relecteurs, puis cases d'AC, registre, `close-slice.sh`
+- Dernier commit de code : 76d4e6f (`joinErrorMessage`, details de maintenance)
+- Prochaine etape : orchestrateur : remplacement de l'appel `Reflect.apply` par `test-writer`, residuel du point 8 dans la fiche de preuves, cases d'AC, registre, `close-slice.sh`
 
 ## Couches
 - [x] Migration : fcd81ca (`0005_join_invite_code.sql`, ERD §9)
 - [x] Acces donnees et logique metier : b9e57f4 (`lib/household.ts`, `lib/invite-code.ts`, `errors.ts`, `contracts.ts`)
 - [x] API : 33ad8ac (`api/household/join`, `api/household/invite-code`)
 - [x] UI : 847aa2b (`/no-household`, `/household`, `ui/join-household-form.tsx`, `ui/regenerate-invite-code-button.tsx`, `ui/messages.ts`)
-- [x] Suite complete verte + `pnpm run check` : 17 fichiers, 213 tests passes ; `check` sort 0
+- [x] Suite complete verte + `pnpm run check` : 18 fichiers, 227 tests passes ; `check` sort 0 (sur 76d4e6f)
 
 ## Blocages
 <!-- cause, essais, options. Vide = aucun. -->
@@ -27,5 +27,6 @@ Tenu par l'implementeur apres **chaque commit**. C'est ce fichier, pas la conver
 - **`readJson` recopie dans `api/household/join/route.ts`** : le factoriser toucherait `api/household/route.ts`, hors perimetre gele. Dette limitee a 7 lignes.
 - **`POST invite-code` ne lit pas le corps** : le contrat n'a pas d'erreur 422 et l'entree est vide ; aucune entree externe n'est donc consommee.
 - **Page `/household` : `throw` si `getInviteCode` refuse la responsable** : role lu `owner` et appartenance immuable, le cas est un invariant rompu, pas une erreur metier.
-- **Formulaire « rejoindre » : `VALIDATION_FAILED` affiche le message de `INVITE_CODE_INVALID`** : le message generique parle de longueur de champ, trompeur pour un caractere hors alphabet. Le statut API reste 422.
+- **Formulaire « rejoindre » : un 422 `VALIDATION_FAILED` affiche le message de `INVITE_CODE_INVALID`** : le message generique parle de longueur de champ, trompeur pour un caractere hors alphabet. Le statut API reste 422. Choix extrait dans la fonction pure `joinErrorMessage` de `ui/messages.ts` (relecture 002, point 8) et teste ; tout autre cas suit `messageFor`. Ecartee : la logique locale au composant, sans preuve possible sans robot (D-027).
 - **Libelles** : INVITE_CODE_INVALID « Ce code n'est pas valide. Verifiez-le et reessayez. » (aucune mention de foyer) ; HOUSEHOLD_FULL « Ce foyer est complet : il compte deja 10 membres. » ; bouton « Regenerer le code », sans demande de confirmation (non specifiee).
+- **Details de maintenance (relecture 002, point 14)** : parametre `read` renomme `run` dans `lib/invite-code.ts`, la regeneration ecrivant aussi ; en-tete de `lib/household.ts` (US-05) et titre de l'ERD §9 mis a jour. Aucun changement de comportement.
