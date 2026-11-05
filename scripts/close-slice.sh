@@ -95,7 +95,7 @@ if [ -n "$DOC" ]; then
   grep -qE '^- \[ \] (\*\*)?AC[0-9]' "$DOC" && bad "criteres d'acceptation non coches dans $DOC"
   NB_AC=$(grep -cE '^- \[[xX]\] (\*\*)?AC[0-9]' "$DOC" 2>/dev/null); NB_AC=${NB_AC:-0}
   [ "$NB_AC" -gt 0 ] || bad "aucun critere d'acceptation coche reconnu dans $DOC (format attendu : « - [x] AC1 — ... »)"
-  grep -qi 'tenant' "$DOC" || bad "aucun critere d'isolation tenant dans la tranche"
+  grep -qi 'tenant' "$DOC" || bad "aucun critere d'isolation tenant dans $DOC : le script cherche le mot « tenant ». Si le projet nomme son tenant autrement (foyer, organisation...), garde le mot dans le titre du critere, ex. « AC5 — Isolation tenant (entre foyers) ». Une tranche sans donnee de tenant l'ecrit aussi : « Isolation tenant : sans objet, car ... »."
 else
   bad "contrat de tranche introuvable (docs/03-slices/$SLICE-*.md)"
 fi

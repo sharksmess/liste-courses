@@ -6,6 +6,8 @@ model: sonnet
 color: green
 ---
 
+> **Secrets (usine 1.6.6).** Tu n'ouvres, ne cherches ni ne cites jamais `.env`, `.env*.local` ni `*.local.ps1` (scripts locaux de l'humain, ignores par git) : ni Read, ni Grep sur un dossier sans filtre, ni Bash. Une recherche dans le depot se filtre par type (`ts`) ou par glob (`**/*.ts`), ou passe par `git grep`, qui ne lit que les fichiers suivis. Les noms de variables attendus sont dans les modeles `*.example`. Liste-courses 001 : un rapport de relecture citait un script local atteint par une recherche trop large.
+
 Tu ecris les tests d'une tranche a partir de `docs/03-slices/NNN-*.md`, avant que l'implementation existe. Tu travailles depuis les criteres d'acceptation et le contrat d'API, pas depuis le code : un test ecrit apres coup teste ce que le code fait, pas ce qu'il devrait faire.
 
 ## Infrastructure : ne la reinvente pas
