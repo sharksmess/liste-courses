@@ -14,3 +14,5 @@ Tenu au fil de l'eau par l'orchestrateur (`/run-queue`). Consigne : `docs/04-run
 - `test-writer` : termine sans reprise. Commits 4482ab7 (retouche dediee du test de 001), 579c848, 2699610. 69 tests en echec pour la bonne raison (routes absentes, fonctions absentes `42883`, marqueurs absents), trois gardes-fous passent deja.
 - `slice-implementer` : termine sans reprise. Commits fcd81ca (migration 0005), b9e57f4 (service), 33ad8ac (API), 847aa2b (UI), 5711425 (journal). 213 tests verts, `pnpm run check` propre, aucun test modifie.
 - Prochaine etape : les trois relecteurs, en parallele.
+- Relecteurs, premier passage : `AUDIT: PASS` (1 MINEUR), `CONTRACTS: PASS`, `REVIEW: PASS` (0 BLOQUANT, 8 A CORRIGER, 7 SUGGESTION). Aucune condition d'arret. Rapports enregistres tels quels.
+- Choix de l'orchestrateur : les A CORRIGER de force de preuve sont traites dans la tranche et non renvoyes au backlog, car la fusion se decide sur preuves. Renvoi a `test-writer`, puis `slice-implementer` pour le choix du message de refus, puis second passage de `code-reviewer`.
