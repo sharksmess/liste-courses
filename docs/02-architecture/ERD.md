@@ -795,6 +795,7 @@ migrateur de drizzle-orm ; historique dans le schema `drizzle`) :
 | `0002_tables.sql` | generee | les sept tables, contraintes et index de §3.1 a §3.4 |
 | `0003_auth_rls.sql` | `--custom` | proprietaire, RLS forcee, privileges et politiques de `lc_auth` |
 | `0004_household.sql` | `--custom` | proprietaire, RLS, privileges et politiques de `lc` ; `current_household_id`, `context_household_id`, `new_invite_code`, triggers de `membership`, `create_household` |
+| `0005_join_invite_code.sql` | `--custom` | tranche 002 : `join_household`, `get_invite_code`, `regenerate_invite_code` (§4.4, §4.5) ; aucune table, politique ni role |
 
 Ecarts a la specification, tous mineurs :
 - **Variable de connexion de better-auth** : `AUTH_DATABASE_URL` (contrat de tranche), pas
@@ -808,3 +809,7 @@ Ecarts a la specification, tous mineurs :
 - **Trigger de compteur** : `membership_count` (`AFTER INSERT OR DELETE`) ; les deux triggers
   d'invariant s'appellent comme leurs fonctions (`membership_protect_owner`, `membership_immutable`).
 - `lc.item`, `add_item` et `item_count_trg` : tranche 003 (contrat de 001, « NE touche PAS »).
+- **Tranche 002** : `get_invite_code` et `regenerate_invite_code` remettent aussi
+  `app.invite_code_lookup` a vide avant de rendre la main (§4.5 ne citait que `app.household_id` ;
+  critere AC9). Dans `regenerate_invite_code`, un tirage egal au code en vigueur compte parmi les
+  5 essais : la boucle reste bornee.
