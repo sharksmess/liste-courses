@@ -2,7 +2,11 @@
  * AC3 : foyer plein et concurrence REELLE (vraie base, vrai serveur, aucun mock).
  *
  * - Les 9 membres du foyer sont crees par l'API reelle (adhesions sequentielles).
- * - Les requetes « simultanees » partent d'un `Promise.all`.
+ * - Les requetes « simultanees » partent d'un `Promise.all` (resultat attendu quel que soit l'entrelacement).
+ * - Serialisation observee, deterministe : le 11e membre attend le verrou du foyer
+ *   tant que le 10e n'a pas commite (LC004), et la seconde adhesion du meme compte
+ *   attend l'index unique (LC002), sur deux connexions `lc_app`.
+ * - Foyer plein dont le code est regenere : LC003 / 404 pour l'ancien code, LC004 / 409 pour le nouveau.
  * - Adhesion pendant une regeneration : deterministe, sur deux connexions
  *   `lc_app` distinctes en transactions COMMITEES (voir openAppTx). L'attente de
  *   l'adhesion est constatee dans pg_stat_activity depuis l'administration.

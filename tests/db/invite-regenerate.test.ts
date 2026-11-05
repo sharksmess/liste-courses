@@ -27,7 +27,7 @@ beforeAll(async () => {
 });
 afterAll(closePools);
 
-const freshCode = () => `0${randomBytes(4).toString("hex").toUpperCase()}0`.padEnd(10, "0");
+const freshCode = () => `0${randomBytes(4).toString("hex").toUpperCase()}0`;
 
 interface Outcome {
   code: string | undefined;
@@ -102,13 +102,13 @@ describe("AC9 : boucle de tirage de regenerate_invite_code", () => {
     expect(o).toEqual({ code: undefined, returned: fresh, stored: fresh, storedB: B.code });
   });
 
-  it("AC9 : cinq collisions levent P0001 (jamais un 6e tirage), et le code en vigueur est inchange", async () => {
-    const o = await regenerateWithDraws(A, [B.code, B.code, B.code, B.code, B.code]);
+  it("AC9 : cinq collisions levent P0001 (le 6e tirage libre n'est jamais consomme), et le code en vigueur est inchange", async () => {
+    const o = await regenerateWithDraws(A, [B.code, B.code, B.code, B.code, B.code, freshCode()]);
     expect(o).toEqual({ code: "P0001", returned: undefined, stored: A.code, storedB: B.code });
   });
 
-  it("AC9 : cinq tirages egaux au code en vigueur levent P0001 (l'egalite compte parmi les 5 essais)", async () => {
-    const o = await regenerateWithDraws(A, [A.code, A.code, A.code, A.code, A.code]);
+  it("AC9 : cinq tirages egaux au code en vigueur levent P0001 (l'egalite compte parmi les 5 essais ; le 6e tirage libre n'est jamais consomme)", async () => {
+    const o = await regenerateWithDraws(A, [A.code, A.code, A.code, A.code, A.code, freshCode()]);
     expect(o).toEqual({ code: "P0001", returned: undefined, stored: A.code, storedB: B.code });
   });
 
@@ -121,11 +121,11 @@ describe("AC9 : boucle de tirage de regenerate_invite_code", () => {
 });
 
 describe("AC9 : app.invite_code_lookup pose sur le code de B", () => {
-  async function withLookup(owner: Home, sql: string): Promise<{ returned: string; ctx: { h: string | null; l: string | null } }> {
+  async function withLookup(owner: Home, sql: string, lookup: string): Promise<{ returned: string; ctx: { h: string | null; l: string | null } }> {
     let tx: AppTx | undefined;
     try {
       tx = await openAppTx(owner.account.userId);
-      await tx.client.query("SELECT set_config('app.invite_code_lookup', $1, true)", [B.code]);
+      await tx.client.query("SELECT set_config('app.invite_code_lookup', $1, true)", [lookup]);
       const r = await tx.client.query<{ c: string }>(sql);
       const ctx = await tx.client.query<{ h: string | null; l: string | null }>(
         "SELECT nullif(current_setting('app.household_id', true), '') AS h, nullif(current_setting('app.invite_code_lookup', true), '') AS l",
@@ -139,18 +139,28 @@ describe("AC9 : app.invite_code_lookup pose sur le code de B", () => {
   }
 
   it("AC9 : get_invite_code rend le code de A, jamais celui de B, et laisse le contexte vide", async () => {
-    const o = await withLookup(A, "SELECT lc.get_invite_code() AS c");
+    const o = await withLookup(A, "SELECT lc.get_invite_code() AS c", B.code);
     expect(o.returned).toBe(A.code);
     expect(o.ctx).toEqual({ h: null, l: null });
     expect(await inviteCodeOf(B.householdId)).toBe(B.code);
   });
 
   it("AC9 : regenerate_invite_code ne change que A, laisse B inchange apres commit et le contexte vide", async () => {
-    const o = await withLookup(A, "SELECT lc.regenerate_invite_code() AS c");
+    const o = await withLookup(A, "SELECT lc.regenerate_invite_code() AS c", B.code);
     expect(o.returned).toMatch(/^[0-9A-HJKMNP-TV-Z]{10}$/);
     expect(o.returned).not.toBe(B.code);
     expect(o.ctx).toEqual({ h: null, l: null });
     expect(await inviteCodeOf(A.householdId)).toBe(o.returned);
     expect(await inviteCodeOf(B.householdId)).toBe(B.code);
+  });
+
+  it("AC9 : sens inverse : B appelle get_invite_code avec le lookup pose sur le code de A (cree en premier) et recoit le code de B", async () => {
+    const codeA = await inviteCodeOf(A.householdId);
+    expect(codeA, "le foyer A doit avoir un code").toBeDefined();
+    expect(codeA).not.toBe(B.code);
+    const o = await withLookup(B, "SELECT lc.get_invite_code() AS c", codeA ?? "");
+    expect(o.returned).toBe(B.code);
+    expect(o.ctx).toEqual({ h: null, l: null });
+    expect(await inviteCodeOf(A.householdId)).toBe(codeA);
   });
 });
