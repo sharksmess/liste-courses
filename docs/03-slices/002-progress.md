@@ -5,8 +5,8 @@ Tenu par l'implementeur apres **chaque commit**. C'est ce fichier, pas la conver
 ## Etat
 - Statut : implementee, relecture faite, correctifs des points 8 et 14 appliques (`docs/04-runbooks/audits/review-002.md`)
 - Branche : slice/002-rejoindre-foyer
-- Dernier commit de code : 76d4e6f (`joinErrorMessage`, details de maintenance)
-- Prochaine etape : orchestrateur : remplacement de l'appel `Reflect.apply` par `test-writer`, residuel du point 8 dans la fiche de preuves, cases d'AC, registre, `close-slice.sh`
+- Dernier commit de code : 76d4e6f ; dernier commit de test : 4174ea3
+- Prochaine etape : second passage de `code-reviewer`, puis `close-slice.sh`
 
 ## Couches
 - [x] Migration : fcd81ca (`0005_join_invite_code.sql`, ERD §9)

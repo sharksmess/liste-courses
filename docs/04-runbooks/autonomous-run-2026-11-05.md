@@ -16,3 +16,5 @@ Tenu au fil de l'eau par l'orchestrateur (`/run-queue`). Consigne : `docs/04-run
 - Prochaine etape : les trois relecteurs, en parallele.
 - Relecteurs, premier passage : `AUDIT: PASS` (1 MINEUR), `CONTRACTS: PASS`, `REVIEW: PASS` (0 BLOQUANT, 8 A CORRIGER, 7 SUGGESTION). Aucune condition d'arret. Rapports enregistres tels quels.
 - Choix de l'orchestrateur : les A CORRIGER de force de preuve sont traites dans la tranche et non renvoyes au backlog, car la fusion se decide sur preuves. Renvoi a `test-writer`, puis `slice-implementer` pour le choix du message de refus, puis second passage de `code-reviewer`.
+- Correctifs de relecture : `test-writer` d1cd609 a e5ea7bf et 4174ea3, `slice-implementer` 76d4e6f. 227 tests verts sur 76d4e6f, aucun defaut d'implementation revele. Decisions D-054 a D-057 au registre, marquees a valider.
+- Prochaine etape : second passage de `code-reviewer`, puis `close-slice.sh`.

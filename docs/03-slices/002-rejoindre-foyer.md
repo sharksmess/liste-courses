@@ -59,47 +59,47 @@ La source de verite est `docs/02-architecture/api-contracts/household.ts` (`join
 
 ## Criteres d'acceptation
 <!-- Format lu par scripts/close-slice.sh : « - [ ] AC1 — titre », coche « - [x] » une fois prouve. -->
-- [ ] AC1 — **Rejoindre avec le code en vigueur** (US-05.1, ADR-0004, D-025)
+- [x] AC1 — **Rejoindre avec le code en vigueur** (US-05.1, ADR-0004, D-025)
   - Un compte sans foyer qui envoie le code en vigueur recoit `200 { name, role: "member" }`.
   - `GET /api/me` rend alors ce foyer avec le role `member`, et `/household` affiche son nom.
   - En base : une appartenance `member`, `display_name` = prenom du compte, `member_count` = 2, egal au nombre de lignes.
   - La saisie est normalisee : minuscules, espaces, tirets, et `O`, `I`, `L` mis pour `0`, `1`, `1` aboutissent au meme foyer.
-- [ ] AC2 — **Code refuse sans rien reveler** (US-05.2, ADR-0004)
+- [x] AC2 — **Code refuse sans rien reveler** (US-05.2, ADR-0004)
   - Un code bien forme mais inconnu donne `404 INVITE_CODE_INVALID`.
   - Un code remplace par une regeneration donne exactement le meme statut et le meme corps.
   - Le corps ne contient ni nom ni identifiant de foyer. Aucune appartenance n'est creee, et `member_count` ne change pas.
   - Un code mal forme apres normalisation (caractere `U`, ponctuation, 9 ou 11 caracteres), ou absent, ou qui n'est pas une chaine, donne `422 VALIDATION_FAILED`, avec le champ en cause et jamais sa valeur.
-- [ ] AC3 — **Foyer plein et concurrence** (US-05.3, ERD §5). Requetes simultanees reelles sur la vraie base, jamais de mock.
+- [x] AC3 — **Foyer plein et concurrence** (US-05.3, ERD §5). Requetes simultanees reelles sur la vraie base, jamais de mock.
   - Un foyer de 10 membres refuse le 11e : `409 HOUSEHOLD_FULL`, et le compte reste a 10.
   - **Le 10e et le 11e membre rejoignent en parallele** : exactement un `200` et un `409 HOUSEHOLD_FULL`, `member_count` = 10, egal au nombre de lignes.
   - Le meme compte envoie deux adhesions simultanees : un `200`, un `409 ALREADY_IN_HOUSEHOLD`, une seule appartenance.
   - **Adhesion pendant une regeneration** : une regeneration tient son verrou sans avoir commite, l'adhesion avec l'ancien code attend ; apres le `COMMIT`, elle est refusee par `LC003`. Le code remplace n'ouvre jamais le foyer (ERD §4.4, etape 6).
-- [ ] AC4 — **Permissions** (US-05.4, US-05.5, US-11.2, US-11.4)
+- [x] AC4 — **Permissions** (US-05.4, US-05.5, US-11.2, US-11.4)
   - Sans session : `POST join`, `GET` et `POST invite-code` donnent `401 UNAUTHENTICATED`.
   - Un compte deja membre, ou responsable d'un foyer, qui tente de rejoindre un autre foyer recoit `409 ALREADY_IN_HOUSEHOLD`, y compris avec un code mal forme, et reste dans son foyer.
   - Un compte sans foyer sur `GET` ou `POST invite-code` recoit `403 NO_HOUSEHOLD`.
   - Un membre qui n'est pas la responsable recoit `403 INSUFFICIENT_ROLE` sur `GET` et sur `POST invite-code`, et le code reste inchange en base.
-- [ ] AC5 — **Isolation tenant (entre foyers, le foyer etant le tenant, ADR-0002)**, avec deux foyers reels A et B, chacun avec sa responsable :
+- [x] AC5 — **Isolation tenant (entre foyers, le foyer etant le tenant, ADR-0002)**, avec deux foyers reels A et B, chacun avec sa responsable :
   - Par l'API, la responsable de A lit le code de A, jamais celui de B. Regenerer le code de A laisse celui de B inchange.
   - Le code de A ne fait rejoindre que A, et celui de B que B (US-11.5).
   - Directement en base sous `lc_app`, avec `app.user_id` = responsable de A : `get_invite_code` rend le code de A, et `regenerate_invite_code` ne touche que A, y compris avec un `app.household_id` force sur B, qui est ignore.
   - Sous `lc_app`, `lc.invite_code` reste illisible et non modifiable, meme avec `app.invite_code_lookup` pose sur le code de B.
   - Un `app.household_id` force sur B avant `join_household` n'influence pas le foyer rejoint.
-- [ ] AC6 — **Voir et regenerer le code** (US-11.1, US-11.3)
+- [x] AC6 — **Voir et regenerer le code** (US-11.1, US-11.3)
   - `GET` rend le code au format `XXXXX-XXXXX`, identique a la valeur stockee une fois le tiret retire, et stable d'une lecture a l'autre.
   - `POST` rend un code different, qui devient celui de `GET` et celui de la base ; `issued_at` avance.
   - Apres regeneration, l'ancien code est refuse (`404 INVITE_CODE_INVALID`) et le nouveau fait rejoindre le foyer.
   - Ces deux reponses portent `Cache-Control: no-store`.
-- [ ] AC7 — **Ecran « rejoindre »** (US-04.1, US-05.3), prouve sur la page rendue par le serveur de test (D-053)
+- [x] AC7 — **Ecran « rejoindre »** (US-04.1, US-05.3), prouve sur la page rendue par le serveur de test (D-053)
   - `/no-household` montre un formulaire actif avec un champ nomme `code` : plus aucun element `disabled` dans ce bloc, plus la mention « bientot ».
   - Le formulaire « creer un foyer » reste present.
   - Une fois le foyer rejoint, `/no-household` et `/` amenent sur `/household`.
   - Les messages affiches pour `INVITE_CODE_INVALID` et `HOUSEHOLD_FULL` existent, different du message generique, et le premier ne cite aucun foyer ; le second dit explicitement que le foyer est complet.
-- [ ] AC8 — **Ecran du code** (US-11.1, US-11.2, US-11.3), prouve sur la page rendue par le serveur de test (D-053)
+- [x] AC8 — **Ecran du code** (US-11.1, US-11.2, US-11.3), prouve sur la page rendue par le serveur de test (D-053)
   - `/household` de la responsable affiche le code au format `XXXXX-XXXXX` et un bouton de regeneration.
   - `/household` d'un membre du meme foyer ne contient le code nulle part dans son HTML, charge utile serialisee comprise, ni le bouton.
   - Apres `POST invite-code`, la page de la responsable affiche le nouveau code et plus l'ancien.
-- [ ] AC9 — **Garanties de la base** (ADR-0005, ERD §4.1, §4.11, §7, `rules/drizzle-postgres.md`)
+- [x] AC9 — **Garanties de la base** (ADR-0005, ERD §4.1, §4.11, §7, `rules/drizzle-postgres.md`)
   - Le test de catalogue de l'usine est vert. Les trois fonctions sont `SECURITY DEFINER`, appartiennent a `lc_definer`, ont leur `search_path` fixe ; `PUBLIC` ne peut pas les executer, `lc_app` le peut, et `lc_better_auth` non.
   - Sans `app.user_id`, chacune leve `LC001`.
   - `join_household` : deja membre `LC002` ; code inconnu, `NULL` ou non normalise `LC003` ; foyer complet `LC004`. `LC002` et `LC003` precedent `LC004`.
