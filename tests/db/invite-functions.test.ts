@@ -15,13 +15,20 @@ import { fillHome, home, issuedAtOf, joinedMember, memberCountOf, type Home } fr
 let A: Home;
 let B: Home;
 let FULL: Home;
+let fullFilled = false;
+
+/** Foyer de 10 membres cree par l'API reelle, a la demande : catalogue et LC001 n'en dependent pas. */
+async function ensureFull(): Promise<void> {
+  if (fullFilled) return;
+  FULL = await home("FF");
+  await fillHome(FULL, 10);
+  fullFilled = true;
+}
 
 beforeAll(async () => {
   await resetDatabase();
   A = await home("FA");
   B = await home("FB");
-  FULL = await home("FF");
-  await fillHome(FULL, 10);
 });
 afterAll(closePools);
 
@@ -146,6 +153,7 @@ describe("AC9 : lc.join_household", () => {
   });
 
   it("AC9 : un foyer complet leve LC004, sans ligne ajoutee et compteur inchange", async () => {
+    await ensureFull();
     const lonely = await createAccount();
     await asApp(lonely.userId, async (c) => {
       expect((await failure(c, "SELECT lc.join_household($1)", [FULL.code])).code).toBe("LC004");
@@ -156,6 +164,7 @@ describe("AC9 : lc.join_household", () => {
   });
 
   it("AC9 : LC002 et LC003 precedent LC004 : un membre ou un code faux n'apprend pas qu'un foyer est complet", async () => {
+    await ensureFull();
     // Deja membre (de A) devant le code d'un foyer complet : LC002.
     await asApp(A.account.userId, async (c) => {
       expect((await failure(c, "SELECT lc.join_household($1)", [FULL.code])).code).toBe("LC002");
@@ -224,6 +233,7 @@ describe("AC9 : lc.get_invite_code et lc.regenerate_invite_code", () => {
 
 describe("AC9 : aucun message d'erreur ne revele de donnee de foyer", () => {
   it("AC9 : messages de LC002, LC003, LC004, LC005 et LC009 sans nom, identifiant ni code de foyer", async () => {
+    await ensureFull();
     const h = await home("FN");
     const member = await joinedMember(h, "Simple");
     const lonely = await createAccount();
