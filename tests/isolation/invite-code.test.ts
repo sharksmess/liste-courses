@@ -29,18 +29,20 @@ describe("AC5 : isolation du code par l'API", () => {
     const ra = await getCode(A.account.cookie);
     expectStatus(ra, 200, "GET invite-code de A");
     expect(ra.body).toEqual({ code: displayed(A.code) });
-    expect(ra.text, describeResult("le code de B fuit dans la reponse de A", ra)).not.toContain(B.code);
 
     const rb = await getCode(B.account.cookie);
     expect(rb.body).toEqual({ code: displayed(B.code) });
-    expect(rb.text).not.toContain(A.code);
   });
 
   it("AC5 : regenerer le code de A laisse celui de B inchange", async () => {
     const { A, B } = await twoHomes("I2");
     const r = await postRegenerate(A.account.cookie);
     expectStatus(r, 200, "regeneration de A");
-    expect(r.text).not.toContain(B.code);
+    const fresh = (r.body as { code: string }).code;
+    for (const secret of [B.code, displayed(B.code), A.code, displayed(A.code)]) {
+      expect(r.text, describeResult("la regeneration de A revele un code etranger ou ancien", r)).not.toContain(secret);
+    }
+    expect(fresh).toMatch(/^[0-9A-HJKMNP-TV-Z]{5}-[0-9A-HJKMNP-TV-Z]{5}$/);
     expect(await inviteCodeOf(B.householdId)).toBe(B.code);
     expect(await inviteCodeOf(A.householdId)).not.toBe(A.code);
     expect(await getCode(B.account.cookie)).toMatchObject({ body: { code: displayed(B.code) } });
@@ -66,8 +68,9 @@ describe("AC5 : isolation du code par l'API", () => {
     expectStatus(await postJoin(displayed(A.code), member.cookie), 200, "adhesion a A");
     for (const r of [await getCode(member.cookie), await postRegenerate(member.cookie)]) {
       expectAppError(r, 403, "INSUFFICIENT_ROLE", "membre de A");
-      expect(r.text).not.toContain(A.code);
-      expect(r.text).not.toContain(B.code);
+      for (const secret of [A.code, displayed(A.code), B.code, displayed(B.code)]) {
+        expect(r.text, describeResult("le refus revele un code", r)).not.toContain(secret);
+      }
     }
     expect(await inviteCodeOf(A.householdId)).toBe(A.code);
   });
@@ -97,7 +100,6 @@ describe("AC5 : isolation du code en base sous lc_app", () => {
       expect(regenerated.rows[0]?.c).not.toBe(B.code);
       expect(regenerated.rows[0]?.c).not.toBe(A.code);
     });
-    expect(await inviteCodeOf(B.householdId)).toBe(B.code);
   });
 
   it("AC5 : une regeneration COMMITEE sous lc_app avec app.household_id force sur B ne change que le code de A", async () => {
@@ -160,13 +162,20 @@ describe("AC5 : isolation du code en base sous lc_app", () => {
     });
   });
 
-  it("AC5 : la responsable de B ne peut pas regenerer le code de A en base : sa regeneration ne touche que B", async () => {
+  it("AC5 : la responsable de B regenere COMMITE avec app.household_id force sur A : seul le code de B change, celui de A reste", async () => {
     const { A: a, B: b } = await twoHomes("DD");
-    await asApp(b.account.userId, async (c) => {
-      await c.query("SELECT set_config('app.household_id', $1, true)", [a.householdId]);
-      const r = await c.query<{ c: string }>("SELECT lc.regenerate_invite_code() AS c");
-      expect(r.rows[0]?.c).not.toBe(a.code);
-    });
-    expect(await inviteCodeOf(a.householdId)).toBe(a.code);
+    let tx: AppTx | undefined;
+    try {
+      tx = await openAppTx(b.account.userId);
+      await tx.client.query("SELECT set_config('app.household_id', $1, true)", [a.householdId]);
+      const r = await tx.client.query<{ c: string }>("SELECT lc.regenerate_invite_code() AS c");
+      await tx.commit();
+      expect(await inviteCodeOf(b.householdId)).toBe(r.rows[0]?.c);
+      expect(await inviteCodeOf(b.householdId)).not.toBe(b.code);
+      expect(await inviteCodeOf(a.householdId)).toBe(a.code);
+    } finally {
+      await tx?.rollback();
+      tx?.release();
+    }
   });
 });

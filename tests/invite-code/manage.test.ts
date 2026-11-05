@@ -41,7 +41,9 @@ describe("AC4 : permissions de GET et POST invite-code", () => {
 
     const g = await getCode(member.cookie);
     expectAppError(g, 403, "INSUFFICIENT_ROLE", "GET par un membre");
-    expect(g.text, describeResult("le refus revele le code", g)).not.toContain(h.code);
+    for (const secret of [h.code, displayed(h.code)]) {
+      expect(g.text, describeResult("le refus revele le code", g)).not.toContain(secret);
+    }
     expectAppError(await postRegenerate(member.cookie), 403, "INSUFFICIENT_ROLE", "POST par un membre");
 
     expect(await inviteCodeOf(h.householdId)).toBe(before);
