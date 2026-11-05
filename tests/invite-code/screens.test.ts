@@ -8,6 +8,7 @@
  *   data-testid="invite-code", data-testid="regenerate-invite-code".
  */
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import * as messages from "../../apps/web/src/ui/messages";
 import { messageFor } from "../../apps/web/src/ui/messages";
 import { createAccount } from "../helpers/auth";
 import { closePools, resetDatabase } from "../helpers/db";
@@ -75,6 +76,7 @@ describe("AC7 : ecran « rejoindre » (page rendue)", () => {
     expect(invalid).not.toBe(generic);
     expect(invalid.trim().length).toBeGreaterThan(0);
     expect(plain(invalid)).not.toContain("complet");
+    expect(plain(invalid)).not.toContain("foyer");
     expect(invalid).not.toBe(messageFor(409, "HOUSEHOLD_FULL"));
   });
 
@@ -149,5 +151,39 @@ describe("AC8 : ecran du code (page rendue)", () => {
     expect(after.html, describePage("GET /household apres", after)).toContain(fresh);
     expect(after.html, describePage("GET /household apres", after)).not.toContain(displayed(h.code));
     expect(after.html, describePage("GET /household apres", after)).not.toContain(h.code);
+  });
+});
+
+describe("AC7 : choix du message du formulaire « rejoindre » (fonction pure joinErrorMessage)", () => {
+  // La fonction est ajoutee apres ces tests ; l'import par espace de noms evite
+  // de casser le typecheck avant son existence et echoue ici, clairement, si elle manque.
+  function joinErrorMessage(status: number, code: string | null): string {
+    const candidate: unknown = (messages as Record<string, unknown>)["joinErrorMessage"];
+    if (typeof candidate !== "function") throw new Error("apps/web/src/ui/messages.ts doit exporter joinErrorMessage(status, code)");
+    const result: unknown = Reflect.apply(candidate, undefined, [status, code]);
+    if (typeof result !== "string") throw new Error("joinErrorMessage doit rendre une chaine");
+    return result;
+  }
+
+  it("AC7 : un 422 VALIDATION_FAILED affiche le message de INVITE_CODE_INVALID, pas le message de longueur du champ", () => {
+    expect(joinErrorMessage(422, "VALIDATION_FAILED")).toBe(messageFor(404, "INVITE_CODE_INVALID"));
+    expect(joinErrorMessage(422, "VALIDATION_FAILED")).not.toBe(messageFor(422, "VALIDATION_FAILED"));
+  });
+
+  it("AC7 : INVITE_CODE_INVALID et HOUSEHOLD_FULL affichent leur propre message", () => {
+    expect(joinErrorMessage(404, "INVITE_CODE_INVALID")).toBe(messageFor(404, "INVITE_CODE_INVALID"));
+    expect(joinErrorMessage(409, "HOUSEHOLD_FULL")).toBe(messageFor(409, "HOUSEHOLD_FULL"));
+    expect(plain(joinErrorMessage(409, "HOUSEHOLD_FULL"))).toContain("complet");
+  });
+
+  it("AC7 : tout autre code suit messageFor (dont 429, 409 ALREADY_IN_HOUSEHOLD, 401 et une erreur inconnue)", () => {
+    const cases: [number, string | null][] = [
+      [429, null],
+      [409, "ALREADY_IN_HOUSEHOLD"],
+      [401, "UNAUTHENTICATED"],
+      [500, null],
+      [0, "NETWORK"],
+    ];
+    for (const [status, code] of cases) expect(joinErrorMessage(status, code), `${status} ${code}`).toBe(messageFor(status, code));
   });
 });
