@@ -64,6 +64,7 @@ Regroupements :
 ## Reevaluations techniques (hors tranches)
 - **TypeScript 7 et ESLint 10** : reevaluer quand `typescript-eslint` accepte TypeScript >= 7 en pair, et que `eslint-plugin-react`, `eslint-plugin-import` et `eslint-plugin-jsx-a11y` (charges par `eslint-config-next`) acceptent ESLint 10 en pair. Socle actuel : TypeScript 6.0.3, ESLint 9.39.5 (D-026, D-032, D-037, ADR-0007, ADR-0008).
 - **Adresse IP du limiteur avant toute mise en ligne** : declarer le proxy reel dans better-auth (`advanced.ipAddress.ipAddressHeaders` + `trustedProxies`, `apps/web/src/lib/auth-ip.ts`) et n'exposer le serveur que derriere lui ; sans cela, toutes les requetes partagent un compteur par chemin et un tiers peut bloquer les connexions de la famille (audit-001 MAJEUR-1, scenario 2 ; D-040, D-043). Mettre a jour le test `tests/auth/rate-limit-ip.test.ts` et ADR-0003.
+- **`minimatch` (alerte Dependabot n° 2, GHSA-g3hv-75wg-m249, ecartee, D-051)** : reexaminer si `typescript-eslint` passe a `minimatch` >= 11.0.1 (ce sera alors une mise a jour normale), si un motif de glob vient de l'exterieur, ou si `optimizationLevel >= 2` est active.
 
 ## Suites de la relecture de la tranche 001 (review-001, D-041)
 - **Contrainte de base franchie en 500** : traduire `23514` (CHECK de nom ou de prenom) en `422 VALIDATION_FAILED`, ou documenter l'invariant ; le `trim` de JS et `[[:space:]]` de Postgres ne comptent pas les memes espaces (review-001, suggestion 5).
