@@ -1,6 +1,6 @@
 /**
- * Couche de service « foyer » (US-03, US-04), commune aux Route Handlers et aux
- * pages (ADR-0006). Les arguments sont deja valides par le schema du contrat ;
+ * Couche de service « foyer » (US-03, US-04, US-05), commune aux Route Handlers
+ * et aux pages (ADR-0006). Les arguments sont deja valides par le schema du contrat ;
  * `userId` vient toujours de la session, jamais de la requete (ADR-0002).
  * Toute requete passe par `withUser` (role lc_app, app.user_id pose) et filtre
  * explicitement sur le foyer de l'utilisateur, en plus de la RLS.

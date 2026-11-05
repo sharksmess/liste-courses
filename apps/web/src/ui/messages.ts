@@ -17,3 +17,12 @@ export function messageFor(status: number, code: string | null): string {
   if (status === 429) return "Trop de tentatives. Patientez quelques secondes.";
   return (code && MESSAGES[code]) ?? "Une erreur est survenue. Reessayez.";
 }
+
+/**
+ * Message du formulaire « rejoindre » : un code mal forme (422) recoit le meme
+ * message neutre qu'un code refuse, le message de validation parlant de longueur.
+ */
+export function joinErrorMessage(status: number, code: string | null): string {
+  if (status === 422 && code === "VALIDATION_FAILED") return messageFor(404, "INVITE_CODE_INVALID");
+  return messageFor(status, code);
+}

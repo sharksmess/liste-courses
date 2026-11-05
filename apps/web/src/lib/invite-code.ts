@@ -21,10 +21,10 @@ function formatInviteCode(stored: string): string {
  */
 async function callInviteFunction(
   userId: string,
-  read: (client: PoolClient) => Promise<string | undefined>,
+  run: (client: PoolClient) => Promise<string | undefined>,
 ): Promise<Result<{ code: string }>> {
   try {
-    const stored = await withUser(userId, read);
+    const stored = await withUser(userId, run);
     if (!stored) throw new Error("fonction de code sans resultat");
     return ok({ code: formatInviteCode(stored) });
   } catch (error) {

@@ -783,7 +783,7 @@ schema `@lc/db/schema` declare par `pgSchema("lc_auth")`) et `advanced.database.
 
 ---
 
-## 9. Implementation (tranche 001) et ecarts
+## 9. Implementation (tranches 001 et 002) et ecarts
 
 Migrations (`packages/db/migrations`, journal Drizzle, appliquees par `src/migrate.ts` avec le
 migrateur de drizzle-orm ; historique dans le schema `drizzle`) :

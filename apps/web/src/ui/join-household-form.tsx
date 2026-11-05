@@ -3,7 +3,7 @@
 /** Formulaire « rejoindre avec un code » (US-05) : POST /api/household/join. */
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
-import { messageFor } from "./messages";
+import { joinErrorMessage } from "./messages";
 import { formText, postJson } from "./requests";
 
 export function JoinHouseholdForm() {
@@ -23,8 +23,7 @@ export function JoinHouseholdForm() {
       return;
     }
     setPending(false);
-    // Un code mal forme et un code refuse recoivent le meme message neutre.
-    setError(messageFor(outcome.status, outcome.code === "VALIDATION_FAILED" ? "INVITE_CODE_INVALID" : outcome.code));
+    setError(joinErrorMessage(outcome.status, outcome.code));
   }
 
   return (
