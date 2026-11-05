@@ -16,7 +16,7 @@ Ta connaissance des versions s'arrete a une date que tu ne connais pas. Le regis
 Autorise uniquement sur une incompatibilite **constatee et reproduite** : commande lancee, erreur obtenue. Dans ce cas : derniere version compatible, ADR avec l'erreur exacte, et une ligne dans le backlog pour reevaluer. « Version que je ne connais pas » n'est jamais un motif.
 
 ## Ajouter une dependance directe
-ADR obligatoire, avec : besoin, alternatives (dont « ne rien ajouter »), licence (MIT, Apache-2.0, BSD, ISC acceptees ; autre = decision humaine), derniere publication < 12 mois, mainteneurs actifs. Un paquet qui execute un script d'installation doit etre ajoute explicitement a `onlyBuiltDependencies` dans `pnpm-workspace.yaml`.
+ADR obligatoire, avec : besoin, alternatives (dont « ne rien ajouter »), licence (MIT, Apache-2.0, BSD, ISC acceptees ; autre = decision humaine), derniere publication < 12 mois, mainteneurs actifs. Un paquet qui execute un script d'installation est autorise ou refuse explicitement dans `pnpm-workspace.yaml`, avec sa raison en commentaire : `allowBuilds: { <paquet>: true|false }` sous pnpm 12 (`onlyBuiltDependencies` sous les versions anterieures). Sous pnpm 12, `pnpm add` echoue alors (`ERR_PNPM_IGNORED_BUILDS`) et ecrit lui-meme une valeur a trancher (`set this to true or false`) : on la tranche, puis `pnpm install` (liste-courses 001, usine 1.6.6). Pour le profil Next, les deux cas usuels : `esbuild: true` (binaire natif) et `unrs-resolver: false` (repli de telechargement inutile quand la dependance de plateforme est installee).
 
 ## Securite
 - `pnpm audit --prod --audit-level=high` propre a chaque cloture de tranche. Une faille transitive se corrige par `overrides` dans `pnpm-workspace.yaml`, en citant l'avis dans un commentaire.
