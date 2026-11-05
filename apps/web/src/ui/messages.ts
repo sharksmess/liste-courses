@@ -7,6 +7,8 @@ const MESSAGES: Record<string, string> = {
   USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL: "Un compte existe deja avec cette adresse.",
   INVALID_EMAIL_OR_PASSWORD: "Adresse ou mot de passe incorrect.",
   ALREADY_IN_HOUSEHOLD: "Vous appartenez deja a un foyer.",
+  INVITE_CODE_INVALID: "Ce code n'est pas valide. Verifiez-le et reessayez.",
+  HOUSEHOLD_FULL: "Ce foyer est complet : il compte deja 10 membres.",
   UNAUTHENTICATED: "Votre session a expire. Reconnectez-vous.",
   NETWORK: "Le serveur est injoignable. Reessayez.",
 };
