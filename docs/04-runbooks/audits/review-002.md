@@ -120,3 +120,79 @@ Fragile : plusieurs assertions ne peuvent pas echouer (lecture apres annulation,
 Manquant : tests de la boucle de regeneration et de la remise a vide de `app.invite_code_lookup`, preuve du cablage client, mention de ce residuel dans la fiche de preuves.
 
 REVIEW: PASS
+
+## Second passage (2026-11-05)
+
+Diff `git diff ff2b27a...HEAD`, relu jusqu'a `5739e87`. Ce commit de documentation est arrive pendant la relecture, apres `3d254b1`. Relecture statique : je n'ai lance ni tests ni serveur, et les mutations evoquees ci-dessous sont raisonnees, pas executees. Resultats de suite non reproduits, transmis par l'orchestrateur : 227 tests verts sur `76d4e6f`, `screens.test.ts` et `pnpm run check` verts sur `4174ea3`. `close-slice.sh` les rejouera.
+
+### Synthese
+Aucun constat BLOQUANT. Les points 1 a 8, 10, 11 et 14 sont traites. Il reste trois A CORRIGER a faible cout : un test annonce une borne haute qu'il ne prouve pas, un filtre reste non prouve parce que ma direction du premier passage etait incomplete, et une ligne parasite a ete ajoutee au journal des frictions.
+
+### BLOQUANT
+Aucun.
+
+### A CORRIGER
+
+#### S1. « Jamais un 6e tirage » n'est pas prouve
+- **Emplacement** : `tests/db/invite-regenerate.test.ts:105-108`, boucle `packages/db/migrations/0005_join_invite_code.sql:191-212`.
+- **Constat** : le test fournit exactement cinq tirages. Avec une borne fautive a 6, le 6e tirage rend `NULL`, `v_new <> v_old` vaut `NULL`, la mise a jour est sautee, et `P0001` tombe au tour suivant.
+- **Consequence** : par lecture, le resultat attendu reste identique, sauf si la remise a `NULL` de `test.draws` fait lever `current_setting`, ce que je n'ai pas verifie. Le test `:99-103` borne bien par le bas (`>= 4` echoue), mais la borne haute, annoncee par le titre, ne l'est pas. Le test `:110-113` a la meme limite pour les tirages egaux.
+- **Direction** : ajouter un 6e tirage libre dans la liste, soit `[B, B, B, B, B, fresh]`, et exiger toujours `P0001` avec `returned: undefined`.
+
+#### S2. Le filtre `WHERE c.household_id = v_hh` de `get_invite_code` reste probablement non prouve
+- **Emplacement** : `tests/db/invite-regenerate.test.ts:141-146` ; `0005_join_invite_code.sql`, lecture de `get_invite_code`.
+- **Constat** : j'avais demande de poser le lookup sur le code de B et d'exiger le code de A. Cette direction etait incomplete, et le test l'applique a la lettre. Sans ce `WHERE`, les deux lignes sont visibles et `SELECT ... INTO` garde la premiere du parcours. Or A a ete cree avant B et aucune mise a jour de A n'est commitee avant ce test, donc A sort probablement en premier.
+- **Consequence** : le mutant reste vraisemblablement vert. La partie principale du point 3 est bien prouvee : retirer `0005:137` ou `:216` fait echouer `ctx.l`. Seul l'argument du journal, « ces fonctions filtrent sur `household_id` », n'est pas etabli.
+- **Direction** : jouer aussi le sens inverse, B appelant avec le lookup pose sur le code de A, A etant le premier en ordre physique.
+
+#### S3. Ligne parasite dans le journal des frictions
+- **Emplacement** : `docs/04-runbooks/FRICTION.md:39`, commit `5739e87`.
+- **Constat** : la ligne 38, correcte, a ete ajoutee par `3d254b1`. `5739e87` ajoute en ligne 39 un doublon dont les separateurs sont des `&`.
+- **Consequence** : ce n'est pas une ligne de table valide : elle s'affiche en texte et la friction apparait deux fois, dans un document qu'un auditeur lit.
+- **Direction** : supprimer la ligne 39.
+
+### SUGGESTION
+- **S4. Formulation inexacte** : D-057 et `docs/04-runbooks/evidence/002.md` parlent d'« un libelle extrait », et le titre de `76d4e6f` de « preciser les libelles ». Aucun libelle ne change : `76d4e6f` extrait une condition dans `joinErrorMessage`. La justification de la non-repasse de `security-auditor` et `contract-guardian` tient quand meme, car le changement est purement UI, cote client et sans effet sur l'API, mais le texte devrait dire « une condition extraite ».
+- **S5. Journal de tranche en retard** : `docs/03-slices/002-progress.md` cite encore « correctifs des points 8 et 14 » alors que dix points ont ete traites, et « Dette limitee a 7 lignes », que le backlog corrige.
+- **S6. En-tete et bruit de test** : l'en-tete de `tests/invite-code/concurrency.test.ts:1-9` ne mentionne pas les nouveaux scenarios deterministes. `padEnd(10, "0")` est sans effet dans `tests/db/invite-regenerate.test.ts:30`.
+
+### Verification des points du premier passage
+
+| Point | Etat | Jugement |
+|---|---|---|
+| 1 Concurrence | Traite | S1 (`concurrency.test.ts`, 10e/11e) : le 11e bloque sur le `UPDATE` du trigger, l'attente est constatee, puis `LC004`. Fait echouer un mutant sans verrou. S2 (meme compte) : la seconde bloque sur l'index unique, puis `LC002` ; retirer `WHEN unique_violation` donne `23505`, donc echec. Branche desormais prouvee de facon deterministe. Les `Promise.all` sont conserves. |
+| 2 Boucle de regeneration | Traite, reserve S1 | Reprise apres collision, reprise apres tirage egal, 5e essai permis et `P0001` sont exerces, sous `lc_app`, avec controle du code stocke et de B. |
+| 3 Lookup | Traite, reserve S2 | Le reglage est pose avant l'appel, transaction commitee, contexte relu : la remise a vide est prouvee. |
+| 4 Lecture apres annulation | Traite | La lecture vacante a ete retiree, le test `DD` commite reellement ; ses trois assertions peuvent echouer. |
+| 5 Format | Traite | Les deux formes sont cherchees en `manage.test.ts` et en isolation. En I2, le nouveau code n'est pas compare au stocke, mais `manage.test.ts` (V3) le fait. |
+| 6 `LC003` avant `LC004` | Traite | S3 : foyer plein reellement regenere, ancien code `LC003` et 404, nouveau code `LC004` et 409. Les anciens tests aux codes sans lien restent, sans dommage. |
+| 7 Message | Traite | `not.toContain("foyer")` ajoute. |
+| 8 Cablage client | Traite | Voir ci-dessous. |
+| 10, 11, 14 | Traites | Garde `rolbypassrls` dans `openAppTx`, code mort retire, `run`, en-tete, ERD §9. |
+| 9, 12, 13 | Au backlog | Entrees presentes dans `000-backlog.md`, avec reference. |
+| 15 | En l'etat | Accepte. |
+
+### Substitution de `lc.new_invite_code`
+Mecanisme sain, par lecture :
+- Le `CREATE OR REPLACE` a lieu dans une transaction d'administration annulee dans `finally`, et reste invisible des autres connexions grace au catalogue transactionnel.
+- `SET LOCAL ROLE lc_app` est verifie par `current_user`, et `regenerate_invite_code` s'execute sous `lc_definer` comme en production.
+- Le tirage se fait hors du bloc `EXCEPTION`, donc la consommation de `test.draws` survit a l'annulation de la sous-transaction.
+- Le test `:115-120` lit `prosrc` hors transaction apres les autres : la preuve de fonction intacte est reelle.
+
+Limite : la substitution exige que `TEST_DATABASE_ADMIN_URL` ait les droits requis, ce qui se verifiera en CI.
+
+### `joinErrorMessage`
+Correct : la fonction est pure, une seule condition, le reste passe par `messageFor`, 429 compris. Les tests font echouer la suppression de la condition. L'usage dans `join-household-form.tsx:26` n'est pas prouve par un test, mais il est couvert par le residuel declare et par le point 3 de la visite.
+
+### Documentation
+- **Fiche `docs/04-runbooks/evidence/002.md`** : le residuel est declare sans detour, et la liste de visite est concrete. Le contenu est sous `## Complements`, section que `scripts/close-slice.sh` conserve.
+- **Registre** : D-054 a D-057 au bon format, marques « A valider par l'humain », options ecartees ecrites. L'ecart avec D-053, decision humaine, est signale dans D-057 et en friction : l'humain le verra.
+- **Journal `04`** : indexe, decompte exact (213 + 8 + 3 + 3 = 227), huit A CORRIGER exacts. Ses formulations « close » et « relecteurs PASS » anticipent la cloture ; elles restent vraies si `close-slice.sh` passe.
+- **AC** : les neuf sont cochees. Je n'ai releve aucune case sans test. Pour AC7 et AC8, la coche couvre le HTML rendu et les fonctions pures, pas le cablage client, comme le dit la fiche.
+
+### Bilan
+Solide : concurrence desormais observee et deterministe, boucle de regeneration executee, isolation commitee, residuel honnetement declare.
+Fragile : borne haute des 5 essais et filtre de `get_invite_code` non prouves, malgre un code juste a la lecture.
+Manquant : un 6e tirage dans le test, le sens inverse du lookup, et le retrait de `FRICTION.md:39`.
+
+REVIEW: PASS

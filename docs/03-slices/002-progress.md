@@ -3,7 +3,7 @@
 Tenu par l'implementeur apres **chaque commit**. C'est ce fichier, pas la conversation, qui permet de reprendre apres une interruption.
 
 ## Etat
-- Statut : implementee, relecture faite, correctifs des points 8 et 14 appliques (`docs/04-runbooks/audits/review-002.md`)
+- Statut : implementee, relecture faite, correctifs de relecture (points 1 a 8, 10, 11, 14) appliques (`docs/04-runbooks/audits/review-002.md`)
 - Branche : slice/002-rejoindre-foyer
 - Dernier commit de code : 76d4e6f ; dernier commit de test : 4174ea3
 - Prochaine etape : second passage de `code-reviewer`, puis `close-slice.sh`
@@ -24,7 +24,7 @@ Tenu par l'implementeur apres **chaque commit**. C'est ce fichier, pas la conver
 - **`app.invite_code_lookup` remis a vide aussi par `get_invite_code` et `regenerate_invite_code`** : l'ERD §4.5 ne cite que `app.household_id`, AC9 exige les deux. Ecrit en ERD §9. Non retenu : remise a vide en tete de fonction, sans effet utile puisque ces fonctions filtrent sur `household_id` et que `lc_app` n'a aucun droit sur la table.
 - **Un tirage egal au code en vigueur compte parmi les 5 essais de `regenerate_invite_code`** : l'ERD §4.5 dit « jusqu'a obtenir une valeur differente » sans borne propre ; une boucle unique reste bornee et ne peut pas tourner sans fin. Ecrit en ERD §9. Non retenu : deux boucles imbriquees, sans gain a 2^-50 de probabilite.
 - **Service du code dans un nouveau `lib/invite-code.ts`**, `joinHousehold` restant dans `lib/household.ts` a cote de `createHousehold` : `formatInviteCode` n'est pas exportee, la mise en forme existe donc en un seul endroit.
-- **`readJson` recopie dans `api/household/join/route.ts`** : le factoriser toucherait `api/household/route.ts`, hors perimetre gele. Dette limitee a 7 lignes.
+- **`readJson` recopie dans `api/household/join/route.ts`** : le factoriser toucherait `api/household/route.ts`, hors perimetre gele. La dette couvre aussi le squelette de POST (backlog).
 - **`POST invite-code` ne lit pas le corps** : le contrat n'a pas d'erreur 422 et l'entree est vide ; aucune entree externe n'est donc consommee.
 - **Page `/household` : `throw` si `getInviteCode` refuse la responsable** : role lu `owner` et appartenance immuable, le cas est un invariant rompu, pas une erreur metier.
 - **Formulaire « rejoindre » : un 422 `VALIDATION_FAILED` affiche le message de `INVITE_CODE_INVALID`** : le message generique parle de longueur de champ, trompeur pour un caractere hors alphabet. Le statut API reste 422. Choix extrait dans la fonction pure `joinErrorMessage` de `ui/messages.ts` (relecture 002, point 8) et teste ; tout autre cas suit `messageFor`. Ecartee : la logique locale au composant, sans preuve possible sans robot (D-027).
