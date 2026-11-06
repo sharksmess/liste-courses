@@ -25,12 +25,16 @@ export function formText(data: FormData, key: string): string {
   return typeof value === "string" ? value : "";
 }
 
-export async function postJson(path: string, payload: unknown): Promise<PostOutcome> {
+export function postJson(path: string, payload: unknown): Promise<PostOutcome> {
+  return sendJson("POST", path, payload);
+}
+
+/** Appel generique : sans `payload`, aucun corps n'est envoye (DELETE). */
+export async function sendJson(method: "POST" | "PATCH" | "DELETE", path: string, payload?: unknown): Promise<PostOutcome> {
   try {
     const response = await fetch(path, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
+      method,
+      ...(payload === undefined ? {} : { headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }),
       credentials: "same-origin",
     });
     const text = await response.text();

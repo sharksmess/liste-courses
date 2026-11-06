@@ -8,6 +8,8 @@ const MESSAGES: Record<string, string> = {
   INVALID_EMAIL_OR_PASSWORD: "Adresse ou mot de passe incorrect.",
   ALREADY_IN_HOUSEHOLD: "Vous appartenez deja a un foyer.",
   INVITE_CODE_INVALID: "Ce code n'est pas valide. Verifiez-le et reessayez.",
+  ITEM_NOT_FOUND: "Cet article n'existe plus : la liste vient d'etre mise a jour.",
+  ITEM_LIMIT_REACHED: "La liste est pleine : supprimez un article pour en ajouter un.",
   HOUSEHOLD_FULL: "Ce foyer est complet : il compte deja 10 membres.",
   UNAUTHENTICATED: "Votre session a expire. Reconnectez-vous.",
   NETWORK: "Le serveur est injoignable. Reessayez.",

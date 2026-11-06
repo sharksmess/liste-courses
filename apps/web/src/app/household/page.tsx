@@ -1,6 +1,9 @@
 import { redirect } from "next/navigation";
 import { getInviteCode } from "@/lib/invite-code";
+import { listItems } from "@/lib/items";
 import { currentViewer } from "@/lib/viewer";
+import { AddItemForm } from "@/ui/add-item-form";
+import { ItemList } from "@/ui/item-list";
 import { RegenerateInviteCodeButton } from "@/ui/regenerate-invite-code-button";
 import { SignOutButton } from "@/ui/sign-out-button";
 
@@ -21,11 +24,15 @@ async function InviteCodeSection({ userId }: { userId: string }) {
   );
 }
 
-/** Page du foyer : nom, code pour la responsable, liste (vide jusqu'a la tranche 003). */
+/** Page du foyer : nom, code pour la responsable, liste et formulaire pour tout membre (US-06, US-07). */
 export default async function HouseholdPage() {
   const viewer = await currentViewer();
   if (!viewer) redirect("/sign-in");
   if (!viewer.household) redirect("/no-household");
+
+  // Foyer perdu entre les deux lectures : meme sortie que sans foyer.
+  const items = await listItems(viewer.user.id);
+  if (!items.ok) redirect("/no-household");
 
   return (
     <main>
@@ -35,8 +42,8 @@ export default async function HouseholdPage() {
       </p>
       {viewer.household.role === "owner" && <InviteCodeSection userId={viewer.user.id} />}
       <h2>Liste de courses</h2>
-      <ul data-testid="item-list"></ul>
-      <p>La liste est vide.</p>
+      <ItemList items={items.value} />
+      <AddItemForm />
       <SignOutButton />
     </main>
   );
