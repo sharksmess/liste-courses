@@ -28,3 +28,16 @@ export function joinErrorMessage(status: number, code: string | null): string {
   if (status === 422 && code === "VALIDATION_FAILED") return messageFor(404, "INVITE_CODE_INVALID");
   return messageFor(status, code);
 }
+
+/**
+ * Suite d'une mutation de la liste. Sur ITEM_NOT_FOUND (article supprime par un
+ * autre membre), le message s'affiche et la page est rechargee ; toute autre
+ * erreur laisse la liste en l'etat.
+ */
+export function itemMutationEffect(outcome: { ok: boolean; status: number; code: string | null }): {
+  refresh: boolean;
+  message: string | null;
+} {
+  if (outcome.ok) return { refresh: true, message: null };
+  return { refresh: outcome.code === "ITEM_NOT_FOUND", message: messageFor(outcome.status, outcome.code) };
+}

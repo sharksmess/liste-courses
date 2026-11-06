@@ -4,8 +4,12 @@
  * les schemas du contrat ; `userId` vient toujours de la session, jamais de la
  * requete (ADR-0002). Toute requete passe par `withUser` (role lc_app,
  * app.user_id pose) et filtre sur `lc.current_household_id()`, en plus de la RLS.
- * Le foyer et l'action sont lus dans la meme transaction : un compte sans foyer
- * n'obtient jamais 404.
+ * Le foyer et l'action sont lus dans la meme transaction : `NULL` donne
+ * NO_HOUSEHOLD, zero ligne touchee donne ITEM_NOT_FOUND. Un compte sans foyer des
+ * le debut de la transaction n'obtient donc pas 404. En READ COMMITTED, chaque
+ * instruction relit l'appartenance : apres la coupure de 004, aucune ecriture ne
+ * passe ; un retrait survenu entre les deux instructions donne 404 au lieu de
+ * 403, sans rien reveler.
  */
 import type { PoolClient } from "pg";
 import { sqlState, withUser } from "./db";

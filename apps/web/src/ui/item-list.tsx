@@ -8,22 +8,28 @@
  */
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import type { z } from "zod";
+import type { setItemPurchased } from "@/lib/contracts";
 import type { Item } from "@/lib/items";
-import { messageFor } from "./messages";
+import { itemMutationEffect } from "./messages";
 import { sendJson } from "./requests";
+
+/** Corps de PATCH, sur l'entree du contrat : `itemId` reste le parametre de route. */
+type PurchasedBody = Omit<z.input<typeof setItemPurchased.input>, "itemId">;
 
 export function ItemList({ items }: { items: Item[] }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [pendingId, setPendingId] = useState<string | null>(null);
 
-  async function mutate(itemId: string, method: "PATCH" | "DELETE", payload?: { purchased: boolean }) {
+  async function mutate(itemId: string, method: "PATCH" | "DELETE", payload?: PurchasedBody) {
     setPendingId(itemId);
     setError(null);
     const outcome = await sendJson(method, `/api/household/items/${encodeURIComponent(itemId)}`, payload);
     setPendingId(null);
-    if (!outcome.ok) setError(messageFor(outcome.status, outcome.code));
-    if (outcome.ok || outcome.code === "ITEM_NOT_FOUND") router.refresh();
+    const effect = itemMutationEffect(outcome);
+    setError(effect.message);
+    if (effect.refresh) router.refresh();
   }
 
   return (
