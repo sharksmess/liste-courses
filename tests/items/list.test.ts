@@ -7,7 +7,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { closePools, resetDatabase } from "../helpers/db";
 import { describeResult, expectStatus } from "../helpers/http";
 import { home, joinedMember } from "../helpers/invite";
-import { deleteItemAs, expectItem, expectList, getItems, patchItem, postItem } from "../helpers/items";
+import { deleteItemAs, expectItem, expectList, getItems, patchItem, postItem, seedItems } from "../helpers/items";
 
 beforeAll(resetDatabase);
 afterAll(closePools);
@@ -99,5 +99,17 @@ describe("AC1 : voir la liste", () => {
 
     expectStatus(await deleteItemAs(added.id, member.cookie), 200, "suppression par le membre");
     expect(expectList(await getItems(h.account.cookie), "lecture 3")).toEqual([]);
+  });
+
+  it("AC1 : a created_at egal, les articles sortent par id croissant", async () => {
+    const h = await home("L7");
+    // Une seule transaction : tous les articles ont le meme created_at, seul id departage.
+    // Aucune assertion sur l'ordre d'ajout (id d'une meme milliseconde n'est pas monotone).
+    await seedItems(h.account.userId, 40, "Meme instant");
+    const listed = expectList(await getItems(h.account.cookie), "GET");
+    expect(listed).toHaveLength(40);
+    expect(new Set(listed.map((i) => i.createdAt)).size, "precondition : created_at identique").toBe(1);
+    const ids = listed.map((i) => i.id);
+    expect(ids).toEqual([...ids].sort());
   });
 });
