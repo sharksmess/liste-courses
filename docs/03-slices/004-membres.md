@@ -29,7 +29,7 @@ User stories : US-10, US-12, US-13 (PRD), et la preuve de bout en bout de US-06.
 - **Contrats d'API** : `members.ts` est implemente tel quel, sans modification.
 - **Code d'invitation** : un retrait ne le regenere pas. Une personne retiree peut revenir avec le code en vigueur (US-12.6). La responsable regenere le code si elle le veut (US-11).
 - **Tables, roles, RLS et migrations** `0000` a `0007` : aucune n'est modifiee.
-- **Fenetre 404 au lieu de 403** sur `PATCH` et `DELETE` d'un article, pour une requete en vol pendant un retrait : acceptee, voir Notes. Le critere porte sur la requete suivante (ADR-0002).
+- **Fenetre 404 au lieu de 403** sur `PATCH` et `DELETE` d'un article, pour une requete en vol pendant un retrait : acceptee (D-067), voir Notes. Le critere porte sur la requete suivante (ADR-0002).
 - **Details du client de 003** (`pendingId`, persistance de l'erreur) : visite guidee apres cette tranche.
 - **Suites de tests de 003 (review-003 R2, R4), borne du corps de requete, `23514`, `10` en dur** : restent au backlog.
 - **Aucune dependance nouvelle.** Pas de robot de navigateur (D-027).
@@ -120,7 +120,7 @@ La source de verite est `docs/02-architecture/api-contracts/members.ts`. Ordre d
 - [ ] AC10 — **Perte du foyer pendant une action sur la liste** (suites de 003, D-025 Q-8, D-061)
   - Une adhesion ulterieure laisse `lc.item` intact : un article ajoute avant ou pendant un retrait reste (Q-8, ERD §5).
   - `addItem`, appele au niveau du service pour un compte sans foyer, rend `NO_HOUSEHOLD` et aucune exception (branche `LC009`).
-  - La branche ou l'article est enregistre puis illisible rend `NO_HOUSEHOLD` et non une exception. Si aucun test deterministe ne peut l'atteindre, la fiche de preuves le declare.
+  - La branche ou l'article est enregistre puis illisible rend `NO_HOUSEHOLD` et non une exception : un retrait non commite tient la ligne du foyer, `add_item` attend ce verrou dans son trigger, et la relecture suit le `COMMIT` (review-004, constat 1).
   - `itemMutationEffect` : `NO_HOUSEHOLD` recharge la page et rend son message, et le formulaire d'ajout suit la meme decision.
 
 ## Anti-regression
@@ -134,7 +134,7 @@ La source de verite est `docs/02-architecture/api-contracts/members.ts`. Ordre d
 - **`LC007` sur `remove_member`** ne peut viser que l'appelant : c'est la seule responsable du foyer, et la cible d'un autre foyer donne `LC006`. Une responsable d'un autre foyer visee donne donc `404`, et jamais `409`.
 - **`listMembers`** lit `lc.membership` sous `lc_app`, filtre sur `household_id = lc.current_household_id()`, trie sur `joined_at, id`, et ne selectionne ni `user_id` ni rien de `lc_auth`. Le foyer et la lecture sont dans le meme `withUser`, comme `listItems`.
 - **`addItem`, foyer perdu entre `add_item` et la relecture** : Q-8, confirmee par l'humain (D-025), a deja tranche : l'article reste. La fonction rend alors `NO_HOUSEHOLD` au lieu de lever, et la transaction valide. Sous RLS, le compte ne peut plus relire l'article, et c'est bien la reponse attendue d'un compte retire. Ecarte : annuler l'article, contraire a Q-8.
-- **Fenetre 404 au lieu de 403** : `inHousehold` lit le foyer puis agit. Un retrait valide entre ces deux instructions donne `ITEM_NOT_FOUND` a la requete en vol. Aucune ecriture ne passe, rien n'est revele, et la requete suivante recoit 403. Acceptee sans code supplementaire (D-061).
+- **Fenetre 404 au lieu de 403** : `inHousehold` lit le foyer puis agit. Un retrait valide entre ces deux instructions donne `ITEM_NOT_FOUND` a la requete en vol, sans rien reveler. Un `DELETE` deja en vol peut aussi commiter juste apres le retrait, comme l'ajout concurrent admis par Q-8. La requete suivante recoit 403. Acceptee sans code supplementaire (D-067).
 - **Ecran** : composant client pour « Retirer » et « Quitter le foyer » : mutation, puis `router.refresh()` ; apres un depart reussi, `router.push("/no-household")`, comme le formulaire « rejoindre ». Decision apres mutation en fonction pure dans `ui/messages.ts`. Pas de demande de confirmation : le PRD n'en prevoit pas (meme lecture que D-055 et D-064, a juger a la visite guidee).
 - **Props du client** : `memberId`, `name`, `role`, seulement. Pas de `user_id`, pas d'adresse (`rules/nextjs.md`). Pour savoir quelle ligne est celle de la responsable, `role` suffit : elle est seule a voir « Retirer », et sa ligne a le role `owner`.
 - Les tests partagent une base reelle : `fileParallelism: false`. Les 10 membres sont crees par l'API reelle ou les helpers de 002.
