@@ -61,14 +61,14 @@ Privileges : `lc_app` a `SELECT`, `UPDATE (purchased)`, `DELETE` sur `lc.item`, 
 La source de verite est `docs/02-architecture/api-contracts/items.ts`. Ordre de verification : celui de la liste `errors` de chaque contrat (ADR-0003). Un `:itemId` qui n'est pas un UUID donne `404`, comme une ressource absente (ADR-0006). `Item` n'expose ni `household_id` ni `author_user_id`.
 
 ## Criteres d'acceptation
-<!-- Format lu par scripts/close-slice.sh : « - [ ] AC1 — titre », coche « - [x] » une fois prouve. -->
-- [ ] AC1 — **Voir la liste** (US-06.1, US-06.3, US-06.4, US-06.5)
+<!-- Format lu par scripts/close-slice.sh : « - [x] AC1 — titre », coche « - [x] » une fois prouve. -->
+- [x] AC1 — **Voir la liste** (US-06.1, US-06.3, US-06.4, US-06.5)
   - Un foyer sans article donne `200 { items: [] }`.
   - Chaque article porte exactement `id`, `name`, `quantity` (`null` si absente), `purchased`, `addedBy.name`, `createdAt`, et rien d'autre.
   - La responsable et un membre du meme foyer voient la meme liste.
   - Les articles sortent dans l'ordre d'ajout (`created_at` puis `id` croissants), meme apres que le premier a ete coche.
   - La reponse porte `Cache-Control: no-store`, et un changement d'un autre membre apparait a la lecture suivante.
-- [ ] AC2 — **Ajouter un article** (US-07.1, US-07.3, US-07.4)
+- [x] AC2 — **Ajouter un article** (US-07.1, US-07.3, US-07.4)
   - `POST` donne `201` et l'article : non coche, `addedBy.name` = prenom de l'appelant, `quantity` `null` si absente.
   - Les espaces de bord sont retires du nom et de la quantite ; c'est la valeur retiree qui est enregistree.
   - Une quantite absente, `null`, vide ou faite d'espaces est enregistree `NULL`.
@@ -76,42 +76,42 @@ La source de verite est `docs/02-architecture/api-contracts/items.ts`. Ordre de 
   - Deux articles du meme nom coexistent.
   - En base : `author_user_id` = appelant, `author_name` = `display_name` de son appartenance, `item_count` augmente de 1, et egale le nombre de lignes.
   - Un corps qui ajoute `purchased: true`, un auteur ou un foyer n'a aucun effet : ces valeurs viennent de la session.
-- [ ] AC3 — **Ajout refuse par la validation** (US-07.2, US-07.3)
+- [x] AC3 — **Ajout refuse par la validation** (US-07.2, US-07.3)
   - `name` absent, vide, fait d'espaces, de plus de 100 points de code, ou qui n'est pas une chaine donne `422 VALIDATION_FAILED` avec `fields` contenant `name`.
   - `quantity` de plus de 30 points de code apres retrait des espaces, ou qui n'est pas une chaine, donne `422` avec `fields` contenant `quantity`.
   - Un corps absent ou qui n'est pas du JSON donne `422`.
   - La reponse ne contient jamais la valeur recue, aucune ligne n'est creee et `item_count` ne change pas.
-- [ ] AC4 — **Permissions et ordre de verification** (US-04.2, ADR-0003)
+- [x] AC4 — **Permissions et ordre de verification** (US-04.2, ADR-0003)
   - Sans session, les quatre routes donnent `401 UNAUTHENTICATED`, meme avec un corps invalide ou un `:itemId` mal forme.
   - Un compte sans foyer recoit `403 NO_HOUSEHOLD` sur les quatre routes, meme avec un corps invalide ou un `:itemId` mal forme.
   - `POST` : `422` avant `409` : un corps invalide sur une liste pleine donne `422`.
   - `PATCH` : `404` avant `422` : `purchased` invalide sur un article absent donne `404`.
-- [ ] AC5 — **Isolation tenant (entre foyers, le foyer etant le tenant, ADR-0002)**, avec deux foyers reels A et B, chacun avec sa responsable et un article :
+- [x] AC5 — **Isolation tenant (entre foyers, le foyer etant le tenant, ADR-0002)**, avec deux foyers reels A et B, chacun avec sa responsable et un article :
   - Par l'API, A ne voit aucun article de B, ni dans `GET`, ni sur sa page.
   - `PATCH` et `DELETE` de A sur un article de B donnent `404 ITEM_NOT_FOUND`, avec exactement le meme statut et le meme corps qu'un identifiant inexistant ou mal forme. L'article de B reste intact et `item_count` de B ne change pas.
   - Directement en base sous `lc_app`, avec `app.user_id` de A : `SELECT` ne rend aucune ligne de B ; `UPDATE` et `DELETE` visant B touchent zero ligne, y compris avec un `app.household_id` force sur B, qui est ignore.
   - `add_item` sous `app.user_id` de A, avec un `app.household_id` force sur B, cree l'article dans A, avec A pour auteur.
   - `item_count` de A et de B restent chacun egaux au nombre de leurs lignes.
-- [ ] AC6 — **Cocher et decocher** (US-08.1, US-08.2, US-08.3)
+- [x] AC6 — **Cocher et decocher** (US-08.1, US-08.2, US-08.3)
   - `PATCH { purchased: true }` donne `200` et l'article coche ; `{ purchased: false }` le decoche. La base suit.
   - Un membre coche et decoche l'article de la responsable, et inversement.
   - Rejouer la meme valeur donne `200` et le meme etat final.
   - `purchased` absent ou non booleen donne `422` avec `fields` contenant `purchased`, et l'etat ne change pas.
   - Un `itemId` place dans le corps est ignore : seul le parametre de route compte.
   - Seul `purchased` change : `name`, `quantity`, l'auteur et `created_at` restent identiques, et `item_count` ne bouge pas.
-- [ ] AC7 — **Supprimer** (US-09.1, US-09.3)
+- [x] AC7 — **Supprimer** (US-09.1, US-09.3)
   - `DELETE` donne `200 { deleted: true }` et l'article disparait de `GET` et de la base.
   - Un membre supprime l'article de la responsable, et inversement.
   - Un rejeu donne `404 ITEM_NOT_FOUND` sans autre effet.
   - `item_count` diminue de 1, et egale le nombre de lignes.
-- [ ] AC8 — **Borne de 200 et concurrence** (US-07.5, US-09.3, ERD §5). Requetes simultanees reelles sur la vraie base, jamais de mock.
+- [x] AC8 — **Borne de 200 et concurrence** (US-07.5, US-09.3, ERD §5). Requetes simultanees reelles sur la vraie base, jamais de mock.
   - Un foyer de 200 articles, coches compris, refuse le suivant : `409 ITEM_LIMIT_REACHED`, et le nombre reste 200.
   - **Deux ajouts paralleles a 199 articles** : exactement un `201` et un `409 ITEM_LIMIT_REACHED`, `item_count` = 200, egal au nombre de lignes.
   - Apres une suppression a 200, l'ajout suivant reussit.
   - Une suppression et un ajout paralleles a 200 articles : aucun 500 ni interblocage, la suppression reussit, le nombre final est 199 ou 200 selon l'ordre, et `item_count` egale le nombre de lignes.
   - Deux suppressions paralleles du meme article : un `200` et un `404`, et le compteur ne baisse qu'une fois.
   - La borne vaut par foyer : un foyer plein ne bloque pas un autre foyer.
-- [ ] AC9 — **Ecran de la liste** (US-06, US-07.5, US-08, US-09), prouve sur la page rendue par le serveur de test (D-053, D-059)
+- [x] AC9 — **Ecran de la liste** (US-06, US-07.5, US-08, US-09), prouve sur la page rendue par le serveur de test (D-053, D-059)
   - Foyer sans article : `<ul data-testid="item-list">` sans `<li`, et la mention « La liste est vide. ».
   - Foyer avec articles : un `<li data-testid="item-row">` par article, dans l'ordre d'ajout, qui porte `data-purchased="true"` ou `"false"` et montre le nom, la quantite si elle existe et le prenom de l'auteur ; la mention « La liste est vide. » n'y figure plus.
   - Chaque ligne a une case a cocher, cochee si l'article est achete, et un bouton « Supprimer ».
@@ -120,7 +120,7 @@ La source de verite est `docs/02-architecture/api-contracts/items.ts`. Ordre de 
   - Un nom contenant du HTML est affiche comme du texte : aucune balise n'est injectee.
   - La page d'un foyer ne contient aucun article d'un autre foyer.
   - Les messages de `ITEM_LIMIT_REACHED` et `ITEM_NOT_FOUND` existent et different du message generique ; le premier dit explicitement que la liste est pleine.
-- [ ] AC10 — **Garanties de la base** (ADR-0005, ERD §1, §4.1, §4.9, §7, `rules/drizzle-postgres.md`)
+- [x] AC10 — **Garanties de la base** (ADR-0005, ERD §1, §4.1, §4.9, §7, `rules/drizzle-postgres.md`)
   - Le test de catalogue de l'usine est vert. `add_item` et `item_count_trg` sont `SECURITY DEFINER`, appartiennent a `lc_definer`, ont leur `search_path` fixe ; `PUBLIC` et `lc_better_auth` ne peuvent pas les executer ; `lc_app` peut executer `add_item`, pas `item_count_trg`.
   - `lc.item` appartient a `lc_owner`, sa RLS est activee et forcee : sous `lc_owner`, zero ligne.
   - `lc_app` n'a pas `INSERT` sur `lc.item`, ni `UPDATE` sur une autre colonne que `purchased`, ni aucun droit d'ecriture sur `lc.household`.
