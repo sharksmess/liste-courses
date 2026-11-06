@@ -7,7 +7,7 @@
  */
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { Account } from "../helpers/auth";
-import { asApp, closePools, pgCode, resetDatabase } from "../helpers/db";
+import { asApp, closePools, resetDatabase } from "../helpers/db";
 import { describePage, getPage, membershipsOfUser } from "../helpers/household";
 import { describeResult, expectAppError } from "../helpers/http";
 import { home, joinedMember, memberCountOf, type Home } from "../helpers/invite";
@@ -142,6 +142,8 @@ describe("AC5 : Isolation tenant (entre foyers), en base sous lc_app", () => {
     await asApp(undefined, async (c) => {
       await expect(c.query("SELECT lc.remove_member($1)", [idMemberB])).rejects.toMatchObject({ code: "LC001" });
     });
-    expect(pgCode(undefined)).toBeUndefined();
+    await asApp(undefined, async (c) => {
+      await expect(c.query("SELECT lc.leave_household()")).rejects.toMatchObject({ code: "LC001" });
+    });
   });
 });
