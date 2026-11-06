@@ -651,6 +651,15 @@ articles) :
   verrou. La borne tient, et la place n'est liberee qu'au `COMMIT` de la suppression (US-09.3).
 - **Ajout d'un article concurrent au retrait de son auteur** : l'ajout peut commiter juste apres le
   retrait ; l'article reste, comme tout article d'une personne retiree (US-12.2). Accepte (Q-8).
+- **Retrait et depart concurrents du meme membre** (tranche 004) : le second `DELETE` attend le verrou
+  de la ligne `membership`, puis ne touche aucune ligne apres le `COMMIT` du premier. Un retrait
+  recoit `LC006`, un depart `LC009` : un seul reussit, et le compteur ne baisse qu'une fois.
+- **Adhesion et depart non commite** (tranche 004) : meme mecanisme que l'article. Sous la borne,
+  l'adhesion attend le verrou du foyer, puis reussit. A 10 membres, `join_household` recoit `LC004`
+  tout de suite : le `CHECK` est evalue sur la version de son instantane avant d'attendre le verrou.
+  La borne tient, et la place n'est liberee qu'au `COMMIT` du depart (D-060).
+- **Retrait et ajout non commite du meme auteur** (tranche 004) : le retrait attend le verrou du
+  foyer tenu par l'ajout, puis aboutit ; l'article reste (Q-8).
 - **Derive du compteur** : impossible par construction (seuls `INSERT` et `DELETE` le modifient, sous
   trigger). Les tests d'integration verifient apres chaque scenario `member_count = count(membership)`
   et `item_count = count(item)` pour le foyer.
