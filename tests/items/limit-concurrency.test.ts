@@ -177,7 +177,15 @@ describe("AC8 : serialisation observee (deterministe, deux connexions lc_app)", 
 
       // Refus immediat, sans attente (mesure sur Postgres 16) : le CHECK est evalue sur la version de
       // l'instantane (200 + 1) avant l'attente du verrou de ligne. Refus pessimiste, la borne tient.
-      const outcome = await settle(txB.client.query("SELECT lc.add_item('Pendant la suppression', NULL)"));
+      // Detail d'executeur, pas un critere : l'AC8 admet aussi une attente suivie d'un refus (199 ou 200
+      // selon l'ordre). Si une montee de version de Postgres change ce comportement, adapter ce test.
+      const attempt = settle(txB.client.query("SELECT lc.add_item('Pendant la suppression', NULL)"));
+      const outcome = await Promise.race([attempt, new Promise<"bloque">((r) => setTimeout(() => r("bloque"), 3000))]);
+      if (outcome === "bloque") {
+        await txA.rollback();
+        await attempt;
+        throw new Error("l'ajout est reste bloque 3 s derriere une suppression non commitee a 200 : refus immediat attendu");
+      }
       expect(outcome.status).toBe("rejected");
       expect(outcome.status === "rejected" ? pgCode(outcome.reason) : undefined).toBe("LC008");
       await txB.rollback();
