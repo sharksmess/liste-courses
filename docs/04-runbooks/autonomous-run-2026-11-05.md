@@ -45,3 +45,10 @@ Tenu au fil de l'eau par l'orchestrateur (`/run-queue`). Consigne : `docs/04-run
 - Correctifs de relecture : `test-writer` six commits `test(...)`, `slice-implementer` 0bc8bb6, ef0a39e. 391 tests verts, 77,01 s (`.logs/003-impl-2.log`), `pnpm run check` propre (`.logs/003-impl-check-2.log`). Aucun defaut d'implementation revele. D-060 a D-064 au registre, marquees a valider. Prochaine etape : second passage de `code-reviewer`, puis `close-slice.sh`.
 - Second passage de `code-reviewer` : `REVIEW: PASS`, 0 BLOQUANT, 1 A CORRIGER (R1), 4 SUGGESTION. R1 et R5 traites dans les documents, R2 et R4 au backlog, R3 sans changement. Reprise apres coupure de connexion demandee par l'humain, etat verifie : aucun travail perdu. Prochaine etape : `close-slice.sh`, puis `ship-slice.sh`, sorties completes dans `.logs/`.
 - Cloture 2026-11-06 : `CLOTURE REUSSIE` (1194d41), 122 s, 391 tests, audit de production, build et gitleaks propres (`.logs/003-close-slice.log`). Aucun passage de tests n'a depasse trois fois la duree habituelle (77 a 116 s). Prochaine etape : `ship-slice.sh`, puis arret pour fusion humaine ; le lien de la PR figure dans le rapport final, pour ne pas pousser un commit de plus apres la livraison.
+- `ship-slice.sh` : PR #6, CI verte, fusionnee par l'humain (418b95c, 2026-11-06). D-060 a D-064 validees (D-065).
+
+## Tranche 004 — Membres
+- Reprise le 2026-11-06 : `main` contient la fusion de 003, arbre propre. PR ouverte : #1 (Dependabot, sans rapport). Budget de ce passage : la seule tranche 004, derniere de la consigne, arret apres `ship-slice.sh`.
+- Regle maintenue : sortie de tests et de push jamais coupee, sortie complete dans `.logs/`. Duree habituelle de reference : 77 a 116 s pour 391 tests, seuil de signalement 330 s.
+- Le choix « annuler ou garder l'article » signale au backlog n'est pas une decision manquante : Q-8 l'a tranche (D-025), inscrit en D-066. Pas d'arret.
+- Etat : ouverte sur `slice/004-membres` depuis `main`. Prochaine etape : `test-writer`.

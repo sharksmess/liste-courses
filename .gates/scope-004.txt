@@ -1,0 +1,15 @@
+apps/web/src/app/api/household/members/*
+apps/web/src/app/api/household/members/[memberId]/*
+apps/web/src/app/api/household/leave/*
+apps/web/src/app/household/*
+apps/web/src/lib/*
+apps/web/src/ui/*
+packages/db/migrations/*
+packages/db/migrations/**/*
+tests/helpers/*
+tests/members/*
+tests/items/*
+tests/household/*
+tests/invite-code/*
+tests/isolation/*
+tests/db/*
