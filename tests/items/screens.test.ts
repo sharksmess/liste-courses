@@ -6,7 +6,7 @@
  * Marqueurs imposes : voir l'en-tete de tests/helpers/items.ts.
  */
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { messageFor } from "../../apps/web/src/ui/messages";
+import { itemMutationEffect, messageFor } from "../../apps/web/src/ui/messages";
 import { closePools, resetDatabase } from "../helpers/db";
 import { describePage, getPage, type Page } from "../helpers/household";
 import { expectStatus } from "../helpers/http";
@@ -228,5 +228,31 @@ describe("AC9 : messages", () => {
     expect(missing).not.toBe(generic);
     expect(missing.trim().length).toBeGreaterThan(0);
     expect(missing).not.toBe(messageFor(404, "INVITE_CODE_INVALID"));
+  });
+});
+
+describe("AC9 : decision apres une mutation de la liste (fonction pure itemMutationEffect)", () => {
+  it("AC9 : un succes recharge la page, sans message", () => {
+    expect(itemMutationEffect({ ok: true, status: 200, code: null })).toEqual({ refresh: true, message: null });
+    expect(itemMutationEffect({ ok: true, status: 201, code: null })).toEqual({ refresh: true, message: null });
+  });
+
+  it("AC9 : ITEM_NOT_FOUND recharge la page et affiche son message", () => {
+    expect(itemMutationEffect({ ok: false, status: 404, code: "ITEM_NOT_FOUND" })).toEqual({
+      refresh: true,
+      message: messageFor(404, "ITEM_NOT_FOUND"),
+    });
+  });
+
+  it.each([
+    [409, "ITEM_LIMIT_REACHED"],
+    [422, "VALIDATION_FAILED"],
+    [401, "UNAUTHENTICATED"],
+    [403, "NO_HOUSEHOLD"],
+    [429, null],
+    [500, null],
+    [0, "NETWORK"],
+  ] as [number, string | null][])("AC9 : l'erreur %s %s ne recharge pas et affiche le message de messageFor", (status, code) => {
+    expect(itemMutationEffect({ ok: false, status, code })).toEqual({ refresh: false, message: messageFor(status, code) });
   });
 });
