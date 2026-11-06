@@ -14,10 +14,12 @@
 ## Decisions
 - D-052 : passage autonome de 002 a 004 (humain).
 - D-053 : ecrans prouves sur la page rendue, visite guidee unique apres 004 (humain).
-- D-054 : `app.invite_code_lookup` remis a vide et tirage egal compte parmi les 5 essais, ecarts ERD §9 (agent, a valider par l'humain).
-- D-055 : pas de demande de confirmation sur la regeneration (agent, a valider par l'humain).
-- D-056 : un 422 sur « rejoindre » affiche le message de code invalide (agent, a valider par l'humain).
-- D-057 : A CORRIGER traites dans la tranche ; cablage client renvoye a la visite (agent, a valider par l'humain).
+- D-054 : `app.invite_code_lookup` remis a vide et tirage egal compte parmi les 5 essais, ecarts ERD §9 (agent, valide par l'humain, D-058).
+- D-055 : pas de demande de confirmation sur la regeneration (agent, valide par l'humain, D-058, a reexaminer a la visite guidee apres 004).
+- D-056 : un 422 sur « rejoindre » affiche le message de code invalide (agent, valide par l'humain, D-058).
+- D-057 : A CORRIGER traites dans la tranche ; cablage client renvoye a la visite (agent, valide par l'humain, D-058).
+- D-058 : validation de D-054 a D-057 (humain).
+- D-059 : la preuve automatique d'un refus porte sur l'API et la page rendue, l'affichage navigateur sur la visite guidee (humain).
 
 Le detail est dans `docs/DECISIONS.md`.
 
@@ -25,10 +27,10 @@ Le detail est dans `docs/DECISIONS.md`.
 Fiche `docs/04-runbooks/evidence/002.md`, qui liste aussi ce qu'elle ne prouve pas. Rapports `docs/04-runbooks/audits/audit-002.md`, `contracts-002.md`, `review-002.md`.
 
 ## Incidents
-Une friction : D-053 demande une preuve des refus sur la page rendue, ce qui est impossible sans robot pour un refus affiche par un composant client (`FRICTION.md`).
+Une friction : D-053 demandait une preuve des refus sur la page rendue, impossible sans robot pour un refus affiche par un composant client ; close par D-059 (`FRICTION.md`). Un echec intermittent du pre-push apres la cloture, non reproduit en dix passages, cause non etablie (`FRICTION.md`).
 
 ## Etat a la fin
 Tranche 002 livree en PR, en attente de la CI et de la fusion humaine. Le foyer peut compter plusieurs membres, ce dont 003 et 004 ont besoin.
 
 ## Etape suivante
-L'humain valide D-054 a D-057, fusionne, puis relance `/run-queue` pour la tranche 003.
+L'humain fusionne, puis relance `/run-queue` pour la tranche 003.
