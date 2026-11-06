@@ -786,7 +786,7 @@ schema `@lc/db/schema` declare par `pgSchema("lc_auth")`) et `advanced.database.
 
 ---
 
-## 9. Implementation (tranches 001 a 003) et ecarts
+## 9. Implementation (tranches 001 a 004) et ecarts
 
 Migrations (`packages/db/migrations`, journal Drizzle, appliquees par `src/migrate.ts` avec le
 migrateur de drizzle-orm ; historique dans le schema `drizzle`) :
@@ -801,6 +801,7 @@ migrateur de drizzle-orm ; historique dans le schema `drizzle`) :
 | `0005_join_invite_code.sql` | `--custom` | tranche 002 : `join_household`, `get_invite_code`, `regenerate_invite_code` (§4.4, §4.5) ; aucune table, politique ni role |
 | `0006_item.sql` | generee | tranche 003 : table `lc.item`, ses contraintes, cles `RESTRICT` et `item_household_order_idx` (§3.5) |
 | `0007_item_rls_functions.sql` | `--custom` | tranche 003 : proprietaire, RLS forcee, privileges et cinq politiques de `lc.item` ; `item_count_trg` et son trigger, `add_item` (§4.8, §4.9) |
+| `0008_member_functions.sql` | `--custom` | tranche 004 : `remove_member`, `leave_household` (§4.6, §4.7) ; aucune table, politique ni role |
 
 Ecarts a la specification, tous mineurs :
 - **Variable de connexion de better-auth** : `AUTH_DATABASE_URL` (contrat de tranche), pas
