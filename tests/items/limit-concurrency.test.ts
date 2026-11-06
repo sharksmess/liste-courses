@@ -193,4 +193,71 @@ describe("AC8 : serialisation observee (deterministe, deux connexions lc_app)", 
       txB?.release();
     }
   });
+
+  it("AC8 : sous la borne (199), une suppression non commitee bloque l'ajout concurrent, qui reussit apres le COMMIT : 199, compteur exact", async () => {
+    const h = await home("S3");
+    const member = await joinedMember(h, "Second");
+    await seedItems(h.account.userId, 198);
+    const target = await addItemInOwnTx(h.account.userId, "A retirer");
+    expect(await itemCountOf(h.householdId)).toEqual({ counter: 199, rows: 199 });
+
+    let txA: AppTx | undefined;
+    let txB: AppTx | undefined;
+    try {
+      txA = await openAppTx(h.account.userId);
+      txB = await openAppTx(member.userId);
+      const deleted = await txA.client.query("DELETE FROM lc.item WHERE id = $1", [target]);
+      expect(deleted.rowCount).toBe(1);
+
+      const pending = settle(txB.client.query("SELECT lc.add_item('Pendant la suppression', NULL)"));
+      await waitUntilBlockedOnLock(txB.pid);
+      const raced = await Promise.race([pending, new Promise<"toujours en attente">((r) => setTimeout(() => r("toujours en attente"), 150))]);
+      expect(raced, "l'ajout ne doit pas aboutir avant le COMMIT de la suppression").toBe("toujours en attente");
+
+      await txA.commit();
+      const outcome = await pending;
+      expect(outcome.status, outcome.status === "rejected" ? String(pgCode(outcome.reason)) : "").toBe("fulfilled");
+      await txB.commit();
+      expect(await itemCountOf(h.householdId)).toEqual({ counter: 199, rows: 199 });
+      expect(await itemRowById(target)).toBeUndefined();
+    } finally {
+      await txA?.rollback();
+      await txB?.rollback();
+      txA?.release();
+      txB?.release();
+    }
+  });
+
+  it("AC8 : deux suppressions du meme article : la seconde attend la premiere, puis ne touche aucune ligne ; le compteur ne baisse qu'une fois", async () => {
+    const h = await home("S4");
+    const member = await joinedMember(h, "Second");
+    await seedItems(h.account.userId, 5);
+    const target = await addItemInOwnTx(h.account.userId, "Cible");
+    expect(await itemCountOf(h.householdId)).toEqual({ counter: 6, rows: 6 });
+
+    let txA: AppTx | undefined;
+    let txB: AppTx | undefined;
+    try {
+      txA = await openAppTx(h.account.userId);
+      txB = await openAppTx(member.userId);
+      expect((await txA.client.query("DELETE FROM lc.item WHERE id = $1", [target])).rowCount).toBe(1);
+
+      const pending = settle(txB.client.query("DELETE FROM lc.item WHERE id = $1", [target]));
+      await waitUntilBlockedOnLock(txB.pid);
+      const raced = await Promise.race([pending, new Promise<"toujours en attente">((r) => setTimeout(() => r("toujours en attente"), 150))]);
+      expect(raced, "la seconde suppression ne doit pas aboutir avant le COMMIT de la premiere").toBe("toujours en attente");
+
+      await txA.commit();
+      const outcome = await pending;
+      expect(outcome.status, outcome.status === "rejected" ? String(pgCode(outcome.reason)) : "").toBe("fulfilled");
+      expect(outcome.status === "fulfilled" ? outcome.value.rowCount : undefined).toBe(0);
+      await txB.commit();
+      expect(await itemCountOf(h.householdId)).toEqual({ counter: 5, rows: 5 });
+    } finally {
+      await txA?.rollback();
+      await txB?.rollback();
+      txA?.release();
+      txB?.release();
+    }
+  });
 });
