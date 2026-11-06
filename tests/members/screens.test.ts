@@ -64,7 +64,7 @@ function rows(html: string): Row[] {
 
 function itemRows(html: string): { text: string }[] {
   const out: { text: string }[] = [];
-  const re = /<li[^>]*data-testid="item-row"[^>]*>([sS]*?)</li>/gi;
+  const re = /<li\b[^>]*data-testid="item-row"[^>]*>([\s\S]*?)<\/li>/gi;
   for (let m = re.exec(html); m !== null; m = re.exec(html)) out.push({ text: stripTags(m[1] ?? "") });
   return out;
 }
