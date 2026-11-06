@@ -61,7 +61,7 @@ Privileges : `lc_app` a `SELECT`, `UPDATE (purchased)`, `DELETE` sur `lc.item`, 
 La source de verite est `docs/02-architecture/api-contracts/items.ts`. Ordre de verification : celui de la liste `errors` de chaque contrat (ADR-0003). Un `:itemId` qui n'est pas un UUID donne `404`, comme une ressource absente (ADR-0006). `Item` n'expose ni `household_id` ni `author_user_id`.
 
 ## Criteres d'acceptation
-<!-- Format lu par scripts/close-slice.sh : « - [x] AC1 — titre », coche « - [x] » une fois prouve. -->
+<!-- Format lu par scripts/close-slice.sh : « - [ ] AC1 — titre », coche « - [x] » une fois prouve. -->
 - [x] AC1 — **Voir la liste** (US-06.1, US-06.3, US-06.4, US-06.5)
   - Un foyer sans article donne `200 { items: [] }`.
   - Chaque article porte exactement `id`, `name`, `quantity` (`null` si absente), `purchased`, `addedBy.name`, `createdAt`, et rien d'autre.

@@ -154,3 +154,94 @@ Fragile : ERD §5 « sous la borne » et double suppression sans observation det
 Manquant : preuve du departage par `id`, preuve du cablage client extractible, epinglage de `(corps)`, lignes de `FRICTION.md`, mise a jour du backlog.
 
 REVIEW: PASS
+
+## Second passage, 2026-11-06
+
+Diff `git diff 0aa876f...HEAD`, relu jusqu'a `695c76d`. Relecture statique : je n'ai lance ni tests ni serveur, et les mutations ci-dessous sont raisonnees, pas executees. Resultats transmis par l'orchestrateur et confirmes sur les journaux : 26 fichiers, 391 tests, 77,01 s (`.logs/003-impl-2.log`), `check` propre (`.logs/003-impl-check-2.log`). Le decompte tient : 375 + 2 (concurrence) + 1 (departage) + 9 (decision apres mutation) + 4 (`(corps)`) = 391. `close-slice.sh` les rejouera.
+
+### Synthese
+Aucun constat BLOQUANT. Les sept A CORRIGER sont traites, sauf le point 3, renvoye avec sa raison. Ce renvoi me parait acceptable, a une condition de faible cout (constat R1). Les nouveaux tests peuvent echouer ; deux d'entre eux prouvent un peu moins que ce que suggere leur origine (R2, R3). Le correctif de code ne change aucun comportement.
+
+### BLOQUANT
+Aucun.
+
+### A CORRIGER
+
+#### R1. Le renvoi du point 3 n'est pas visible la ou le contrat de 004 sera ecrit, et laisse un choix ouvert sans le dire
+- **Emplacement** : `docs/03-slices/000-backlog.md:59-62` (section `### 004 — Membres`), `:84` ; ERD §5, « Ajout d'un article concurrent au retrait de son auteur ».
+- **Constat** :
+  - L'entree est dans « Suites de la tranche 003 », loin des notes de 004, que la consigne designe comme source du contrat.
+  - Elle dit « Attendu : un resultat type, avec un test », sans le choix que le premier passage signalait : annuler l'article, ou le garder. L'ERD §5 accepte que l'article reste.
+  - Elle ne cite pas la branche `case "LC009"`, toujours sans test (`apps/web/src/lib/items.ts:118`), qui tient a la meme fenetre.
+- **Consequence** : le contrat de 004 peut l'omettre, et le 500 sur article enregistre partirait avec la tranche. S'il la reprend, il devra trancher un point que le backlog ne signale pas.
+- **Direction** : une ligne de renvoi dans `### 004`, le choix explicite dans l'entree `:84`, et `LC009` a prouver au meme endroit.
+
+### SUGGESTION
+
+#### R2. S4 prouve la base, pas le service
+- **Emplacement** : `tests/items/limit-concurrency.test.ts:239`, `:106`.
+- S4 execute `DELETE` directement, sans passer par `deleteItem`. Il peut echouer : une suppression qui n'attend pas, ou un trigger de niveau instruction, le feraient tomber.
+- Le mutant cite au point 1 (« lire, puis supprimer sans verifier `rowCount` », dans `lib/items.ts`) n'est toujours detecte par `:106` que si les requetes se chevauchent.
+- Pour lier le scenario a l'API : tenir la suppression dans `openAppTx`, envoyer le `DELETE` HTTP, constater son attente, commiter, exiger le 404.
+
+#### R3. La detection du mutant `ORDER BY created_at` depend du plan
+- **Emplacement** : `tests/items/list.test.ts:104` ; message de `a421700`.
+- Le test verifie bien la puce de l'AC1 sur le resultat. Il echoue a coup sur avec `id DESC`, et sa precondition (`createdAt` identique) est verifiee.
+- En revanche, si le plan du mutant lit `item_household_order_idx`, les egalites sortent deja par `id` et le test reste vert. Je n'ai pas verifie le plan ; le message du commit promet donc plus que ce qui est etabli.
+- Le comportement observe resterait le bon dans ce cas, d'ou le niveau de ce constat. Rien a changer.
+
+#### R4. Commentaire de S2 inexact
+- **Emplacement** : `tests/items/limit-concurrency.test.ts:180`.
+- « une attente suivie d'un refus » : un ajout qui attendrait une suppression finalement commitee reussirait. La garde de 3 s est saine : `txA.rollback()` libere l'ajout, le second `rollback` est sans effet, et l'echec est net.
+
+#### R5. Artefact de remplacement dans le contrat
+- **Emplacement** : `docs/03-slices/003-liste-courses.md:64`.
+- Le commentaire de format dit desormais « - [x] AC1 — titre », coche « - [x] », alors que 002 garde « - [ ] ». Sans effet sur `close-slice.sh`, qui cherche les lignes cochees, mais le commentaire ne dit plus rien.
+
+### Verification des points du premier passage
+
+| Point | Etat | Jugement |
+|---|---|---|
+| 1 Concurrence sous la borne | Traite, reserve R2 | S3 (`:205`) : 199 articles, suppression non commitee, attente constatee par `waitUntilBlockedOnLock`, non-aboutissement sur 150 ms, COMMIT, ajout reussi, 199 reconcilie. C'est la preuve de la phrase de l'ERD §5 : un mutant ou la suppression ne verrouille pas le foyer expire. S4 (`:239`) : attente sur la ligne, `rowCount` 0, compteur decremente une fois. Citation du journal corrigee. |
+| 2 Departage par `id` | Traite, reserve R3 | Puce d'AC1 verifiee sur le resultat, sans contredire la note du contrat : aucune assertion sur l'ordre d'ajout. |
+| 3 `throw` apres `COMMIT` | Renvoye (D-061), voir ci-dessous | En-tete de `lib/items.ts` et note du contrat ramenes a ce qui est vrai. Condition : R1. |
+| 4 Cablage client | Traite | Voir « Correctif `0bc8bb6` ». |
+| 5 `(corps)` | Traite | `toEqual(["(corps)"])` sur cinq corps (`toggle-delete.test.ts:88`), etat inchange. Fusionner corps et parametre ferait echouer le test. D-063 ecrit la lecture de l'AC6. |
+| 6 `FRICTION.md` | Traite | Les trois incidents y sont, plus une friction nouvelle sur `close-slice.sh`. |
+| 7 Backlog | Traite | Entree reduite au squelette de `POST`, condition de reprise ecrite. |
+| 8 S2 | Traite, reserve R4 | Garde de delai, portee du test ecrite. |
+| 9, 10 | Au backlog | Entrees presentes ; `pendingId` et persistance de l'erreur aussi au point 8 de la visite. |
+| 11 | Traite | Titre de `item-functions.test.ts:348` corrige, commentaire en `isolation/items.test.ts`, statut verifie en `toggle-delete.test.ts:73`, `Math.abs` et commentaire en question retires, en-tete de helper corrige. |
+| 12 | Traite | Journal, ERD §9, renvoi aux tests pour la preuve durable. La nouvelle ligne du §9 est exacte : le retour au point de sauvegarde retablit le reglage. |
+
+### Le renvoi du point 3 (D-061)
+Acceptable, pour trois raisons :
+- **Atteignabilite.** Le cas exige un retrait de membre, et rien ne supprime une ligne `membership` avant 004. Le `throw` reste en 003 un vrai invariant, conforme a CLAUDE.md.
+- **Preuve.** Corriger maintenant ajouterait du code qu'aucun test ne peut exercer sans le chemin de retrait.
+- **Gravite.** Fenetre de quelques millisecondes, sans fuite ni depassement : un 500 pour un article enregistre, qu'un rechargement revele. Les textes trop forts, seul defaut actuel, sont corriges.
+
+D-061 est marquee « a valider », ce qui laisse le dernier mot a l'humain. La condition est R1 : sans elle, le renvoi depend de la memoire de celui qui ecrira le contrat de 004.
+
+### Nouveaux tests : peuvent-ils echouer ?
+- **S3 et S4** : oui, voir le tableau. Limite de S4 : R2.
+- **Departage** : oui, limite R3.
+- **`(corps)`** : oui.
+- **`itemMutationEffect`** : oui. Retirer la condition `ITEM_NOT_FOUND`, recharger sur toute erreur ou perdre le message fait echouer ces cas, qui comparent l'objet entier. L'appel depuis `item-list.tsx` n'est pas prouve, ce que la fiche declare.
+
+### Correctif `0bc8bb6`
+- **Comportement inchange** : `setError(effect.message)` equivaut aux deux lignes retirees, `setError(null)` precedant deja l'appel.
+- **Types** : imports `type` seuls, donc ni `zod` ni les contrats ne partent vers le client. Les corps sont des litteraux verifies contre un type nomme, donc une cle en trop echoue. Le journal dit avoir constate l'echec de `tsc` ; essai non rejoue. `postJson` reste en `unknown` et les chemins restent litteraux : c'est dans le residuel declare.
+- **`security-auditor` et `contract-guardian`** : la fiche dit qu'ils n'ont pas repasse. Le diff de `apps/` le justifie : un commentaire dans `lib/items.ts`, des types, une condition extraite ; aucune route, aucun SQL.
+
+### Documentation
+- **Registre** : D-060 a D-064 au bon format, marquees a valider, options ecartees ecrites. Le renvoi est explicite dans D-061.
+- **Fiche `evidence/003.md`** : residuel declare sans detour, liste de visite concrete, contenu sous `## Complements`.
+- **Journal `05`** : indexe. « Tranche close », « relecteurs PASS » et « livree en PR » anticipent la cloture, comme pour 002 ; ces formules resteront vraies si `close-slice.sh` et `ship-slice.sh` passent.
+- **AC** : les dix sont cochees, et je n'y releve aucune case sans test. Pour AC9, la coche couvre le HTML rendu et les fonctions pures, pas le cablage client.
+
+### Bilan
+Solide : concurrence observee sous la borne, `(corps)` et decision apres mutation epingles, documents complets, correctif sans effet de comportement.
+Fragile : double suppression observee sur la base et non sur le service, detection du mutant de tri dependante du plan.
+Manquant : renvoi du point 3 dans la section 004 du backlog, avec le choix ouvert et `LC009`.
+
+REVIEW: PASS

@@ -10,7 +10,7 @@
 - Deux arrets de l'implementeur sur des tests qu'aucune implementation ne pouvait satisfaire. Il n'a touche a aucun test : `test-writer` les a corriges (`6d536cb`, `29302b2`). Le second a revele un comportement reel de Postgres a la borne, note a l'ERD §5 (D-060).
 - Trois relecteurs : `AUDIT: PASS`, `CONTRACTS: PASS`, `REVIEW: PASS` sans BLOQUANT, avec sept A CORRIGER et cinq suggestions.
 - Les points de force de preuve ont ete traites dans la tranche (D-061) : concurrence observee sous la borne, departage par `id`, decision apres mutation extraite dans `itemMutationEffect`, corps types sur les contrats (`0bc8bb6`). La suite passe de 375 a 391 tests, sans reveler de defaut d'implementation.
-- Second passage de `code-reviewer` : voir `review-003.md`.
+- Second passage de `code-reviewer` : `REVIEW: PASS`, 0 BLOQUANT, un A CORRIGER documentaire traite (renvoi vers la section 004 du backlog) et quatre suggestions, dont deux au backlog.
 
 ## Decisions
 - D-060 : `LC008` immediat a la borne pendant une suppression non commitee (orchestrateur, a valider).

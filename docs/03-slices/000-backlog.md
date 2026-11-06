@@ -60,6 +60,7 @@ Regroupements :
 - **Routes** : `members.ts` (lister, retirer, quitter).
 - **Ecran** : la liste des membres ; « retirer » pour la responsable, « quitter » pour un membre.
 - **Coupure immediate** : apres le retrait, la session encore ouverte du membre retire recoit `403 NO_HOUSEHOLD` sur la liste.
+- **A reprendre dans le contrat de 004** (« Suites de la tranche 003 », D-061) : perte du foyer pendant `addItem`, avec un choix a trancher et la branche `LC009` a prouver ; fenetre 404 au lieu de 403 ; `NO_HOUSEHOLD` cote client ; `LC004` immediat a la borne des membres.
 
 ## Reevaluations techniques (hors tranches)
 - **TypeScript 7 et ESLint 10** : reevaluer quand `typescript-eslint` accepte TypeScript >= 7 en pair, et que `eslint-plugin-react`, `eslint-plugin-import` et `eslint-plugin-jsx-a11y` (charges par `eslint-config-next`) acceptent ESLint 10 en pair. Socle actuel : TypeScript 6.0.3, ESLint 9.39.5 (D-026, D-032, D-037, ADR-0007, ADR-0008).
@@ -81,11 +82,13 @@ Regroupements :
 - **Cablage client des ecrans** : chemin, cle `code`, affichage de l'erreur et `router.refresh()` n'ont aucune preuve automatique sans robot de navigateur (D-027). A verifier a la visite guidee apres 004 (D-053, D-057).
 
 ## Suites de la tranche 003 (audit-003, review-003)
-- **`addItem`, foyer perdu entre `add_item` et la relecture** : a traiter dans 004, qui rend le cas atteignable. Aujourd'hui, `lib/items.ts` leve apres le `COMMIT` si la relecture ne rend rien : en 004, un retrait a cet instant donnerait un 500 pour un article enregistre. Attendu : un resultat type, avec un test (review-003, point 3).
+- **`addItem`, foyer perdu entre `add_item` et la relecture** : a traiter dans 004, qui rend le cas atteignable. Aujourd'hui, `lib/items.ts` leve apres le `COMMIT` si la relecture ne rend rien : en 004, un retrait a cet instant donnerait un 500 pour un article enregistre. Attendu : un resultat type, avec un test. **Choix a trancher dans le contrat de 004** : annuler l'article, ou le garder comme l'ERD §5 l'accepte pour un ajout concurrent d'un retrait (Q-8). La branche `LC009` de `addItem`, sans test aujourd'hui, tient a la meme fenetre et se prouve au meme endroit (review-003, point 3 et R1).
 - **Fenetre 404 au lieu de 403** : `inHousehold` lit le foyer puis agit en deux instructions ; un membre retire entre les deux touche zero ligne et recoit `ITEM_NOT_FOUND`. Aucune ecriture ne passe et rien n'est revele. A rejouer en 004, seule tranche qui cree des departs (audit-003, review-003 point 3).
 - **Contrat de 004, borne des membres** : un `join_household` a 10 membres pendant un depart non commite recoit `LC004` tout de suite, par le meme mecanisme que `LC008` (ERD §5). A ecrire dans le contrat de 004 (review-003, suggestion 10).
 - **`NO_HOUSEHOLD` cote client** : un membre retire qui agit sur la liste voit le message generique et aucun rechargement. A traiter dans 004 (review-003, suggestion 9).
 - **Details du client a juger a la visite guidee apres 004** : un seul `pendingId` pour toute la liste, fenetre entre la fin de la requete et la fin du `refresh`, erreur qui persiste jusqu'a l'action suivante (review-003, suggestion 9 ; D-059).
+- **Double suppression observee sur la base seulement** : le scenario deterministe de `limit-concurrency.test.ts` execute le `DELETE` en SQL direct. Pour lier la preuve a `deleteItem` : tenir la suppression dans `openAppTx`, envoyer le `DELETE` HTTP, constater son attente, commiter, exiger le 404 (review-003, R2).
+- **Commentaire inexact** dans le test S2 de `limit-concurrency.test.ts` : « une attente suivie d'un refus » ; un ajout qui attendrait une suppression commitee reussirait (review-003, R4). Retouche dans un commit `test(...)` dedie.
 - **Corps de requete non borne** : la suite de 002 vaut aussi pour `POST` et `PATCH /api/household/items` ; sur `PATCH`, le corps est lu avant la verification du foyer, et un compte sans foyer suffit (audit-003, MINEUR-1).
 
 ## Hors backlog (hors perimetre du PRD)
