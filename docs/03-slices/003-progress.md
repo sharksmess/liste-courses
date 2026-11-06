@@ -3,10 +3,10 @@
 Tenu par l'implementeur apres **chaque commit**. C'est ce fichier, pas la conversation, qui permet de reprendre apres une interruption.
 
 ## Etat
-- Statut : ouverte, arretee sur un test AC8 a arbitrer (voir Blocages)
+- Statut : ouverte
 - Branche : slice/003-liste-courses
 - Dernier commit : 8d33086 feat(items): routes de la liste et lecture commune du corps
-- Prochaine etape : arbitrage du test AC8 « un ajout attend une suppression non commitee », puis UI (`ui/requests.ts`, messages, formulaire, liste, page)
+- Prochaine etape : UI (`ui/requests.ts`, messages, formulaire, liste, page), puis suite complete et `pnpm run check`
 
 ## Couches
 - [x] Migration (0b24a59 : 0006, 0007, ERD §9 ; 92 tests sur 94 verts dans tests/db et tests/_factory, les 2 rouges sont les defauts de tests ci-dessous)
@@ -18,6 +18,7 @@ Tenu par l'implementeur apres **chaque commit**. C'est ce fichier, pas la conver
 
 ## Blocages
 <!-- cause, essais, options. Vide = aucun. -->
+- Resolu : option 1 retenue par l'orchestrateur, test aligne par `test-writer` (29302b2), ERD §5 corrige. Voir Decisions.
 - **`tests/items/limit-concurrency.test.ts:179`, AC8 « un ajout attend une suppression non commitee de la meme ligne de compteur, puis reussit apres son COMMIT »** : en echec, a trancher avant la suite (`.logs/003-impl-api-1.log`). Test non modifie.
   - Constat : a 200 articles commites, avec un `DELETE` non commite dans A, `add_item` dans B ne bloque pas : il rend `LC008` en 20 ms (`.logs/003-impl-diagnostic-2-resultat.log`, test jetable supprime). `waitUntilBlockedOnLock` expire donc.
   - Cause : en `READ COMMITTED`, Postgres evalue le `CHECK` sur la nouvelle version calculee depuis la ligne de son instantane, **avant** de tenter `heap_update` et d'attendre le verrou. 200 + 1 viole `household_item_limit` tout de suite. L'attente n'existe que si le pre-controle passe, comme a 199 (le test voisin, a 199, est vert).
@@ -38,4 +39,6 @@ Tenu par l'implementeur apres **chaque commit**. C'est ce fichier, pas la conver
 - **Migration en deux fichiers** : `0006_item.sql` generee, `0007_item_rls_functions.sql` `--custom`, comme demande par la tranche. Le trigger se nomme `item_count`, sur le modele de `membership_count` (l'ERD ne le nommait pas) ; ecart note a l'ERD §9.
 - **Schema dans un fichier `schema/item.ts`** plutot que dans `household.ts` : la table a sa propre section d'ERD. Ecarte : allonger `household.ts`.
 - **`requireHousehold` dans `lib/items.ts`**, plutot que `findHousehold`, pour la verification preliminaire de `POST` et d'un `:itemId` mal forme : elle lit la seule primitive, sans jointure ni role. Ecarte : `findHousehold`, qui lit nom et role inutilement.
+- **Ajout a la borne pendant une suppression non commitee : `LC008` immediat, ERD §5 corrige** (arbitrage de l'orchestrateur, option 1). Postgres evalue le `CHECK` sur la version de son instantane avant d'attendre le verrou ; la borne tient, la place n'est liberee qu'au `COMMIT` (US-09.3), et AC8 admet « 199 ou 200 selon l'ordre ». Sous la borne, l'attente sur le verrou du foyer reste vraie. Ecarte : un verrou explicite du foyer dans `add_item` (`FOR NO KEY UPDATE`) par une nouvelle migration, ecart a l'ERD §4.8 pour un cas que le contrat accepte.
+- **Corps non objet sur `PATCH` : `fields: ["(corps)"]`**, comme sur `POST`, si l'article existe dans le foyer. Le corps est lu par `input.pick({ purchased: true })`, si bien que `itemId` ne peut pas venir du corps. Ecarte : fusionner le corps et le parametre de route avant validation, qui aurait cite `purchased` pour un corps illisible et melange les deux sources.
 - **Contexte non remis a vide avant `LC008`** : `add_item` releve l'erreur sans reset, parce qu'une exception annule de toute facon le `set_config` local fait dans le bloc ; le retour au point de sauvegarde ou le ROLLBACK restaure le reglage (teste en AC10).

@@ -644,8 +644,11 @@ articles) :
 - **Meme compte, deux adhesions ou creations concurrentes** : `membership_user_key` serialise ; la
   seconde leve `unique_violation`, traduite en `LC002`.
 - **Adhesion et regeneration concurrentes** : verrou `FOR SHARE` (§4.4, 6).
-- **Suppression d'article et ajout concurrents** : les deux passent par le verrou du foyer ; ordre
-  de verrouillage identique (ligne `item`, puis ligne `household`), pas d'interblocage.
+- **Suppression d'article et ajout concurrents** : sous la borne, l'ajout attend le verrou du foyer
+  tenu par la suppression ; ordre de verrouillage identique (ligne `item`, puis ligne `household`),
+  pas d'interblocage. A la borne, un ajout concurrent d'une suppression non commitee recoit `LC008`
+  tout de suite : Postgres evalue le `CHECK` sur la version de son instantane avant d'attendre le
+  verrou. La borne tient, et la place n'est liberee qu'au `COMMIT` de la suppression (US-09.3).
 - **Ajout d'un article concurrent au retrait de son auteur** : l'ajout peut commiter juste apres le
   retrait ; l'article reste, comme tout article d'une personne retiree (US-12.2). Accepte (Q-8).
 - **Derive du compteur** : impossible par construction (seuls `INSERT` et `DELETE` le modifient, sous
