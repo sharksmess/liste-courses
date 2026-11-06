@@ -62,6 +62,13 @@ function rows(html: string): Row[] {
   return out;
 }
 
+function itemRows(html: string): { text: string }[] {
+  const out: { text: string }[] = [];
+  const re = /<li[^>]*data-testid="item-row"[^>]*>([sS]*?)</li>/gi;
+  for (let m = re.exec(html); m !== null; m = re.exec(html)) out.push({ text: stripTags(m[1] ?? "") });
+  return out;
+}
+
 function pageButtons(html: string): string[] {
   return [...html.matchAll(/<button\b[\s\S]*?<\/button>/gi)].map((b) => plain(stripTags(b[0])));
 }
@@ -143,26 +150,39 @@ describe("AC8 : la liste des membres", () => {
     expect(rows(pageB.html)).toHaveLength(2);
   });
 
-  it("AC8 : apres un retrait ou un depart par l'API, la page de la responsable ne montre plus la personne, et ses articles restent avec son prenom", async () => {
+  it("AC8 : apres un retrait ou un depart par l'API, la page ne montre plus la personne, et chaque article reste dans sa ligne avec le prenom exact de son auteur (responsable et membre restant)", async () => {
+    // Prenoms et noms d'articles sans aucune sous-chaine commune : un prenom absent ne peut pas etre masque par le nom de l'article.
     const h = await home("S7");
-    const removed = await joinedMember(h, "Retiree");
-    const left = await joinedMember(h, "Partie");
-    expectItem(await postItem({ name: "ArticleRetiree" }, removed.cookie), 201, "article de la retiree");
-    expectItem(await postItem({ name: "ArticlePartie" }, left.cookie), 201, "article de la partie");
-    expect(rows((await household(h.account.cookie, "avant")).html)).toHaveLength(3);
+    const removed = await joinedMember(h, "Zelda");
+    const left = await joinedMember(h, "Ursule");
+    const stay = await joinedMember(h, "Baptiste");
+    expectItem(await postItem({ name: "Pommes" }, removed.cookie), 201, "article de la retiree");
+    expectItem(await postItem({ name: "Farine" }, left.cookie), 201, "article de la partie");
+    expect(rows((await household(h.account.cookie, "avant")).html)).toHaveLength(4);
 
     expectStatus(await deleteMemberAs(await membershipIdOf(removed.userId), h.account.cookie), 200, "retrait");
-    let page = await household(h.account.cookie, "apres retrait");
-    expect(rows(page.html).map((x) => x.text).join(" | "), describePage("la retiree ne figure plus", page)).not.toContain("Retiree");
-    expect(rows(page.html)).toHaveLength(2);
+    const afterRemoval = await household(h.account.cookie, "apres retrait");
+    expect(rows(afterRemoval.html).map((x) => x.text).join(" | "), describePage("la retiree ne figure plus dans les membres", afterRemoval)).not.toContain("Zelda");
+    expect(rows(afterRemoval.html)).toHaveLength(3);
 
     expectStatus(await postLeave(left.cookie), 200, "depart");
-    page = await household(h.account.cookie, "apres depart");
-    expect(rows(page.html)).toHaveLength(1);
-    expect(page.html, describePage("articles conserves", page)).toContain("ArticleRetiree");
-    expect(page.html).toContain("ArticlePartie");
-    expect(page.text, describePage("prenoms conserves sur les articles", page)).toContain("retiree");
-    expect(page.text).toContain("partie");
+    for (const [label, cookie] of [
+      ["responsable", h.account.cookie],
+      ["membre restant", stay.cookie],
+    ] as const) {
+      const page = await household(cookie, `apres depart, page de la ${label}`);
+      const members = rows(page.html).map((x) => x.text).join(" | ");
+      expect(members, describePage("les personnes parties ne figurent plus dans les membres", page)).not.toMatch(/Zelda|Ursule/);
+      expect(rows(page.html), describePage("membres restants", page)).toHaveLength(2);
+      const items = itemRows(page.html);
+      expect(items.map((x) => x.text.includes("Pommes") ? "Pommes" : x.text.includes("Farine") ? "Farine" : "?").sort(), describePage("articles conserves", page)).toEqual(["Farine", "Pommes"]);
+      const apples = items.find((x) => x.text.includes("Pommes"));
+      const flour = items.find((x) => x.text.includes("Farine"));
+      expect(apples?.text, describePage(`prenom de la retiree dans la ligne de son article (${label})`, page)).toContain("Zelda");
+      expect(apples?.text).not.toContain("Ursule");
+      expect(flour?.text, describePage(`prenom de la partie dans la ligne de son article (${label})`, page)).toContain("Ursule");
+      expect(flour?.text).not.toContain("Zelda");
+    }
   });
 
   it("AC8 : la session d'un membre retire est menee de /household a /no-household", async () => {
