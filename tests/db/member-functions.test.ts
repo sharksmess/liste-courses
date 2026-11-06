@@ -230,26 +230,25 @@ describe("AC9 : droits et messages", () => {
 
   it("AC9 : aucun message d'erreur des fonctions ne contient un nom ou un identifiant de foyer", async () => {
     const secrets = [H.householdId, H.householdName, OTHER.householdId, OTHER.householdName];
-    const messages: string[] = [];
+    const failures: Failure[] = [];
     const lonely = await createAccount({ name: "Seul" });
     await asApp(undefined, async (c) => {
-      messages.push((await failure(c, "SELECT lc.remove_member($1)", [idOtherMember])).message);
-      messages.push((await failure(c, "SELECT lc.leave_household()")).message);
+      failures.push(await failure(c, "SELECT lc.remove_member($1)", [idOtherMember]));
+      failures.push(await failure(c, "SELECT lc.leave_household()"));
     });
     await asApp(lonely.userId, async (c) => {
-      messages.push((await failure(c, "SELECT lc.remove_member($1)", [idOtherMember])).message);
-      messages.push((await failure(c, "SELECT lc.leave_household()")).message);
+      failures.push(await failure(c, "SELECT lc.remove_member($1)", [idOtherMember]));
+      failures.push(await failure(c, "SELECT lc.leave_household()"));
     });
     await asApp(M2.userId, async (c) => {
-      const f = await failure(c, "SELECT lc.remove_member($1)", [idOtherMember]);
-      if (f.code === "LC005") messages.push(f.message);
+      failures.push(await failure(c, "SELECT lc.remove_member($1)", [idOtherMember]));
     });
     await asApp(H.account.userId, async (c) => {
-      messages.push((await failure(c, "SELECT lc.remove_member($1)", [idOtherMember])).message);
-      messages.push((await failure(c, "SELECT lc.remove_member($1)", [idOwner])).message);
-      messages.push((await failure(c, "SELECT lc.leave_household()")).message);
+      failures.push(await failure(c, "SELECT lc.remove_member($1)", [idOtherMember]));
+      failures.push(await failure(c, "SELECT lc.remove_member($1)", [idOwner]));
+      failures.push(await failure(c, "SELECT lc.leave_household()"));
     });
-    expect(messages.length).toBeGreaterThanOrEqual(8);
-    for (const m of messages) for (const s of secrets) expect(m).not.toContain(s);
+    expect(failures.map((f) => f.code)).toEqual(["LC001", "LC001", "LC009", "LC009", "LC005", "LC006", "LC007", "LC007"]);
+    for (const f of failures) for (const s of secrets) expect(f.message).not.toContain(s);
   });
 });
