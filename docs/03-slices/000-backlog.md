@@ -73,5 +73,12 @@ Regroupements :
 - **Retouches de tests dans des commits dedies** : toute modification d'un test existant part dans un commit `test(...)` separe, pour qu'un auditeur l'isole (review-001, suggestion 8).
 - **Commentaire manquant** sur `Promise.resolve().then(...)` dans `apps/web/src/lib/auth.ts` (review-001, suggestion 9).
 
+## Suites de la tranche 002 (audit-002, review-002)
+- **Corps de requete non borne** : `request.json()` lit tout le corps avant la validation, sur `POST /api/household/join` et `POST /api/household`, sans limite de taille cote Next. Un compte gratuit peut saturer la memoire avec un `code` de plusieurs centaines de Mo. Borner la taille pour toutes les routes JSON, ou au proxy, avant toute mise en ligne (audit-002, MINEUR-1 ; D-011). Un changement de `InviteCodeInput` releve de l'humain.
+- **`readJson` et squelette de `POST` recopies** dans `api/household/join/route.ts` : factoriser dans `lib/`, ce qui touche `api/household/route.ts`, avant que 003 et 004 multiplient la copie (review-002, suggestion 9).
+- **`10` en dur dans le message `HOUSEHOLD_FULL`** (`ui/messages.ts`) : retirer le nombre ou noter le couplage avec `household_member_limit` (review-002, suggestion 12).
+- **Renforts AC8** : verifier que le code de la responsable figure dans une balise `<script>` de sa propre page, et faire une requete `RSC: 1` cote membre (review-002, suggestion 13).
+- **Cablage client des ecrans** : chemin, cle `code`, affichage de l'erreur et `router.refresh()` n'ont aucune preuve automatique sans robot de navigateur (D-027). A verifier a la visite guidee apres 004 (D-053, D-057).
+
 ## Hors backlog (hors perimetre du PRD)
 Recuperation de mot de passe, suppression de compte et RGPD (R1), notifications, temps reel, plusieurs listes, historique, transfert du role de responsable, modification d'un article ou du prenom. Tout ajout passe par une mise a jour du PRD et une decision humaine.

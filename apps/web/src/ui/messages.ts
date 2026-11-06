@@ -7,6 +7,8 @@ const MESSAGES: Record<string, string> = {
   USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL: "Un compte existe deja avec cette adresse.",
   INVALID_EMAIL_OR_PASSWORD: "Adresse ou mot de passe incorrect.",
   ALREADY_IN_HOUSEHOLD: "Vous appartenez deja a un foyer.",
+  INVITE_CODE_INVALID: "Ce code n'est pas valide. Verifiez-le et reessayez.",
+  HOUSEHOLD_FULL: "Ce foyer est complet : il compte deja 10 membres.",
   UNAUTHENTICATED: "Votre session a expire. Reconnectez-vous.",
   NETWORK: "Le serveur est injoignable. Reessayez.",
 };
@@ -14,4 +16,13 @@ const MESSAGES: Record<string, string> = {
 export function messageFor(status: number, code: string | null): string {
   if (status === 429) return "Trop de tentatives. Patientez quelques secondes.";
   return (code && MESSAGES[code]) ?? "Une erreur est survenue. Reessayez.";
+}
+
+/**
+ * Message du formulaire « rejoindre » : un code mal forme (422) recoit le meme
+ * message neutre qu'un code refuse, le message de validation parlant de longueur.
+ */
+export function joinErrorMessage(status: number, code: string | null): string {
+  if (status === 422 && code === "VALIDATION_FAILED") return messageFor(404, "INVITE_CODE_INVALID");
+  return messageFor(status, code);
 }

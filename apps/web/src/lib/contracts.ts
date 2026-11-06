@@ -3,4 +3,5 @@
  * la configuration better-auth valident avec ces schemas, jamais avec une copie.
  */
 export { signUp } from "../../../../docs/02-architecture/api-contracts/auth";
-export { createHousehold, getMe } from "../../../../docs/02-architecture/api-contracts/household";
+export { createHousehold, getMe, joinHousehold } from "../../../../docs/02-architecture/api-contracts/household";
+export { getInviteCode, regenerateInviteCode } from "../../../../docs/02-architecture/api-contracts/invite-code";

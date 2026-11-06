@@ -35,14 +35,6 @@ describe("AC8 : page « sans foyer » (US-04)", () => {
     expect(page.html, describePage(`${label} : formulaire de creation`, page)).toMatch(/<form[\s>]/i);
   });
 
-  it("AC8 : le bloc « rejoindre avec un code » est desactive et annonce qu'il arrive bientot", async () => {
-    const account = await createAccount();
-    const page = await getPage("/no-household", account.cookie);
-    const label = "GET /no-household, bloc rejoindre";
-    expect(page.html, describePage(label, page)).toMatch(/<(?:button|input|fieldset)\b[^>]*\sdisabled/i);
-    expect(page.text, describePage(label, page)).toContain("bientot");
-  });
-
   it("AC8 : un compte sans foyer qui visite /household ou / est amene sur la page « sans foyer »", async () => {
     const account = await createAccount();
     for (const route of ["/household", "/"]) {

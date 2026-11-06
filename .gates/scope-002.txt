@@ -1,0 +1,13 @@
+apps/web/src/app/api/household/join/*
+apps/web/src/app/api/household/invite-code/*
+apps/web/src/app/household/*
+apps/web/src/app/no-household/*
+apps/web/src/lib/*
+apps/web/src/ui/*
+packages/db/migrations/*
+packages/db/migrations/**/*
+tests/helpers/*
+tests/household/*
+tests/invite-code/*
+tests/isolation/*
+tests/db/*
