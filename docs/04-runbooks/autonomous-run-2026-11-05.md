@@ -52,3 +52,7 @@ Tenu au fil de l'eau par l'orchestrateur (`/run-queue`). Consigne : `docs/04-run
 - Regle maintenue : sortie de tests et de push jamais coupee, sortie complete dans `.logs/`. Duree habituelle de reference : 77 a 116 s pour 391 tests, seuil de signalement 330 s.
 - Le choix « annuler ou garder l'article » signale au backlog n'est pas une decision manquante : Q-8 l'a tranche (D-025), inscrit en D-066. Pas d'arret.
 - Etat : ouverte sur `slice/004-membres` depuis `main`. Prochaine etape : `test-writer`.
+- `test-writer`, premier lancement : arrete sans rapport (« no progress for 600s », cote plateforme), comme en 003. Relance une fois avec l'etat constate.
+- `test-writer`, relance : terminee. Commits f6aa255 a b8eac91 ; une seule retouche d'un test existant, dediee (7a56b04, `NO_HOUSEHOLD` recharge desormais la page, AC10). Passage rouge attendu : 78 echecs de 004, 397 verts, 475 tests, 106,81 s (`.logs/004-test-writer-3.log`).
+- **Passage de plus de trois fois la duree habituelle** : 367,90 s, `.logs/004-test-writer-2.log`, seuil 330 s. Un test existant y a expire (`tests/auth/profile-immutable.test.ts`), date de 264 738 ms pour un delai de 20 s : le processus de test semble avoir ete fige environ 245 s. Vert au passage suivant, sans rien changer. Detail et cause probable, non prouvee, dans `FRICTION.md`. Pas une condition d'arret : hors cloture, code de 003 inchange, cause sans lien avec la tranche.
+- Prochaine etape : `slice-implementer`.
