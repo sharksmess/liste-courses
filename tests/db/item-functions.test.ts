@@ -198,7 +198,7 @@ describe("AC10 : table lc.item", () => {
 
   it("AC10 : l'index item_household_order_idx existe sur (household_id, created_at, id), et aucun index unique ne porte sur name", async () => {
     const idx = await adminPool().query<{ cols: string[] }>(
-      `SELECT array_agg(a.attname ORDER BY k.ord) AS cols
+      `SELECT array_agg(a.attname::text ORDER BY k.ord) AS cols
          FROM pg_index i
          JOIN pg_class c ON c.oid = i.indexrelid
          CROSS JOIN LATERAL unnest(i.indkey::int2[]) WITH ORDINALITY AS k(attnum, ord)
@@ -325,7 +325,7 @@ describe("AC10 : lc.item_count_trg", () => {
     const id = await addItemInOwnTx(h.account.userId, "A retirer");
     await addItemInOwnTx(h.account.userId, "Reste");
     await asApp(h.account.userId, async (c) => {
-      const sentinel = "valeur-precedente-inventee";
+      const sentinel = "00000000-0000-4000-8000-00000000dead";
       await c.query("SELECT set_config('app.household_id', $1, true)", [sentinel]);
       const del = await c.query("DELETE FROM lc.item WHERE id = $1", [id]);
       expect(del.rowCount).toBe(1);
