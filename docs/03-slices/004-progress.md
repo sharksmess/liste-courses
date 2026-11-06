@@ -5,15 +5,15 @@ Tenu par l'implementeur apres **chaque commit**. C'est ce fichier, pas la conver
 ## Etat
 - Statut : ouverte
 - Branche : slice/004-membres
-- Dernier commit : UI (voir Couches), ERD §5 et journal dans le commit docs suivant
-- Prochaine etape : suite complete et `pnpm run check`
+- Dernier commit : 8a34614, puis ce journal
+- Prochaine etape : relecteurs et cloture, par l'orchestrateur. Suite complete verte : 476 tests, 97,96 s, `.logs/004-impl-5.log`. `pnpm run check` propre : `.logs/004-impl-check.log`
 
 ## Couches
 - [x] Migration : 4a2ade7
 - [x] Acces donnees et logique metier : 50ce0c8
 - [x] API : b47fda7
 - [x] UI : 1a31c0f
-- [ ] Suite complete verte + `pnpm run check`
+- [x] Suite complete verte + `pnpm run check`
 
 ## Blocages
 <!-- cause, essais, options. Vide = aucun. -->
