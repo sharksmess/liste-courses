@@ -5,16 +5,16 @@ Tenu par l'implementeur apres **chaque commit**. C'est ce fichier, pas la conver
 ## Etat
 - Statut : ouverte
 - Branche : slice/003-liste-courses
-- Dernier commit : 8d33086 feat(items): routes de la liste et lecture commune du corps
-- Prochaine etape : UI (`ui/requests.ts`, messages, formulaire, liste, page), puis suite complete et `pnpm run check`
+- Dernier commit : f65862a feat(items): ecran de la liste et formulaire d'ajout
+- Prochaine etape : orchestrateur : relecteurs, registre, cloture (`close-slice.sh`)
 
 ## Couches
 - [x] Migration (0b24a59 : 0006, 0007, ERD §9 ; 92 tests sur 94 verts dans tests/db et tests/_factory, les 2 rouges sont les defauts de tests ci-dessous)
 - [x] Acces donnees (ae39972, `lib/items.ts`, typecheck vert ; prouve par les tests d'API)
 - [x] Logique metier (ae39972)
 - [x] API (8d33086 ; 132 tests sur 133 sur add, list, permissions, toggle-delete, limit-concurrency, household/create, invite-code/join ; `tests/isolation/items.test.ts` attend la page)
-- [ ] UI
-- [ ] Suite complete verte + `pnpm run check`
+- [x] UI (f65862a)
+- [x] Suite complete verte + `pnpm run check` (375 tests sur 375, 108,55 s, `.logs/003-impl-1.log` ; check propre, `.logs/003-impl-check.log`)
 
 ## Blocages
 <!-- cause, essais, options. Vide = aucun. -->
@@ -41,4 +41,7 @@ Tenu par l'implementeur apres **chaque commit**. C'est ce fichier, pas la conver
 - **`requireHousehold` dans `lib/items.ts`**, plutot que `findHousehold`, pour la verification preliminaire de `POST` et d'un `:itemId` mal forme : elle lit la seule primitive, sans jointure ni role. Ecarte : `findHousehold`, qui lit nom et role inutilement.
 - **Ajout a la borne pendant une suppression non commitee : `LC008` immediat, ERD §5 corrige** (arbitrage de l'orchestrateur, option 1). Postgres evalue le `CHECK` sur la version de son instantane avant d'attendre le verrou ; la borne tient, la place n'est liberee qu'au `COMMIT` (US-09.3), et AC8 admet « 199 ou 200 selon l'ordre ». Sous la borne, l'attente sur le verrou du foyer reste vraie. Ecarte : un verrou explicite du foyer dans `add_item` (`FOR NO KEY UPDATE`) par une nouvelle migration, ecart a l'ERD §4.8 pour un cas que le contrat accepte.
 - **Corps non objet sur `PATCH` : `fields: ["(corps)"]`**, comme sur `POST`, si l'article existe dans le foyer. Le corps est lu par `input.pick({ purchased: true })`, si bien que `itemId` ne peut pas venir du corps. Ecarte : fusionner le corps et le parametre de route avant validation, qui aurait cite `purchased` pour un corps illisible et melange les deux sources.
+- **Liste entiere en composant client `ui/item-list.tsx`**, nourri par la page : le message de `ITEM_NOT_FOUND` doit survivre au rechargement qui retire la ligne. `Item` n'expose ni foyer ni identifiant d'auteur, et ces donnees sont deja affichees a ce meme membre : rien de sensible dans les props (`rules/nextjs.md`). Ecarte : des boutons client par ligne, dont le message disparaitrait avec la ligne.
+- **Pas de `maxLength` sur les champs d'article** : le navigateur compte des unites UTF-16, et refuserait 100 emoji que le contrat accepte. La borne reste au serveur, en points de code.
+- **Foyer perdu entre `currentViewer` et `listItems` sur la page** : redirection vers `/no-household`, comme sans foyer, pour la coupure de 004. Ecarte : une erreur de page, ce cas etant attendu.
 - **Contexte non remis a vide avant `LC008`** : `add_item` releve l'erreur sans reset, parce qu'une exception annule de toute facon le `set_config` local fait dans le bloc ; le retour au point de sauvegarde ou le ROLLBACK restaure le reglage (teste en AC10).
