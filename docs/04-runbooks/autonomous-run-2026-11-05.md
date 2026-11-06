@@ -31,3 +31,6 @@ Tenu au fil de l'eau par l'orchestrateur (`/run-queue`). Consigne : `docs/04-run
 - Regle ajoutee par l'humain pour ce passage : jamais de sortie de tests ni de push coupee (ni `tail` ni `head`) ; sortie complete conservee dans un fichier ; un passage de tests de plus de trois fois la duree habituelle est note ici avec sa duree. Sorties dans `.logs/` (ignore par git, `*.log`). Duree habituelle de reference : 53 a 60 s pour 228 tests (FRICTION 2026-11-06), a reestimer une fois la suite de 003 ecrite.
 - Etat : ouverte sur `slice/003-liste-courses` depuis `main`.
 - Prochaine etape : `test-writer`.
+- `test-writer`, premier lancement : arrete sans rapport (« no progress for 600s », cote plateforme). Laisse, non committes : `tests/helpers/items.ts`, `tests/items/list.test.ts`. Relance une fois avec cet etat (`skills/implement/SKILL.md`).
+- `test-writer`, relance : terminee, reprise unique reussie, aucune reprise par l'orchestrateur. Commits 0766a03 a cc772aa, journal 0cf65e7. Passage rouge attendu : 97 echecs de 003 (table, fonction, routes, marqueurs absents), 49 ignores (`beforeAll`), 228 tests existants verts, 115,69 s (moins de trois fois la reference ; `.logs/003-test-writer-1.log`).
+- Prochaine etape : `slice-implementer`.
