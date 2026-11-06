@@ -10,7 +10,7 @@ import type { Account } from "../helpers/auth";
 import { asApp, closePools, resetDatabase } from "../helpers/db";
 import { describePage, getPage, membershipsOfUser } from "../helpers/household";
 import { describeResult, expectAppError } from "../helpers/http";
-import { home, joinedMember, memberCountOf, type Home } from "../helpers/invite";
+import { home, joinedMember, memberCountOf, openAppTx, type Home } from "../helpers/invite";
 import { deleteMemberAs, expectMembers, getMembers, membershipIdOf, membershipRowsOf, postLeave, unknownMemberId } from "../helpers/members";
 
 let A: Home;
@@ -119,14 +119,33 @@ describe("AC5 : Isolation tenant (entre foyers), en base sous lc_app", () => {
     await asApp(memberA.userId, async (c) => {
       await c.query("SELECT set_config('app.household_id', $1, true)", [B.householdId]);
       await c.query("SELECT lc.leave_household()");
-      const inA = await c.query("SELECT 1 FROM lc.household WHERE id = $1 AND member_count = 1", [A.householdId]);
-      expect(inA.rowCount, "A a perdu exactement un membre").toBe(1);
-      const own = await c.query("SELECT 1 FROM lc.membership WHERE user_id = $1", [memberA.userId]);
-      expect(own.rowCount).toBe(0);
+      // La session est coupee (ERD §3.3, ADR-0002) : la personne partie ne voit plus rien de A, ni de B.
+      const households = await c.query("SELECT 1 FROM lc.household WHERE id = ANY($1::uuid[])", [[A.householdId, B.householdId]]);
+      expect(households.rowCount, "plus aucune ligne lc.household visible").toBe(0);
+      const memberships = await c.query("SELECT 1 FROM lc.membership WHERE household_id = ANY($1::uuid[])", [[A.householdId, B.householdId]]);
+      expect(memberships.rowCount, "plus aucune ligne lc.membership visible").toBe(0);
     });
     expect(await memberCountOf(B.householdId)).toEqual({ counter: 2, rows: 2 });
     expect(await membershipsOfUser(memberB.userId)).toHaveLength(1);
     expect(await memberCountOf(A.householdId)).toEqual({ counter: 2, rows: 2 });
+  });
+
+  it("AC5 : un depart commite avec app.household_id force sur B ne decremente que A (constate par l'administration)", async () => {
+    const leaver = await joinedMember(A, "PartiForce");
+    const beforeA = await memberCountOf(A.householdId);
+    const beforeB = await memberCountOf(B.householdId);
+    const tx = await openAppTx(leaver.userId);
+    try {
+      await tx.client.query("SELECT set_config('app.household_id', $1, true)", [B.householdId]);
+      await tx.client.query("SELECT lc.leave_household()");
+      await tx.commit();
+    } finally {
+      await tx.rollback();
+      tx.release();
+    }
+    expect(await membershipsOfUser(leaver.userId)).toEqual([]);
+    expect(await memberCountOf(A.householdId)).toEqual({ counter: beforeA.counter - 1, rows: beforeA.rows - 1 });
+    expect(await memberCountOf(B.householdId)).toEqual(beforeB);
   });
 
   it("AC5 : un depart reel dans A laisse B intact, et les deux compteurs restent egaux au nombre de lignes", async () => {

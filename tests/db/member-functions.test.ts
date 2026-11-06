@@ -10,7 +10,7 @@ import type { Account } from "../helpers/auth";
 import { createAccount } from "../helpers/auth";
 import { adminPool, asApp, closePools, pgCode, resetDatabase } from "../helpers/db";
 import { membershipsOfUser } from "../helpers/household";
-import { home, joinedMember, memberCountOf, type Home } from "../helpers/invite";
+import { home, joinedMember, memberCountOf, openAppTx, type Home } from "../helpers/invite";
 import { membershipIdOf } from "../helpers/members";
 
 let H: Home;
@@ -186,14 +186,22 @@ describe("AC9 : lc.leave_household", () => {
     expect(await membershipsOfUser(H.account.userId)).toHaveLength(1);
   });
 
-  it("AC9 : un membre part, member_count baisse de 1, et app.household_id est vide apres (meme force)", async () => {
-    await asApp(M1.userId, async (c) => {
-      await c.query("SELECT set_config('app.household_id', $1, true)", [SENTINEL]);
-      const before = await rowsOf(c, H.householdId);
-      await c.query("SELECT lc.leave_household()");
-      expect(await rowsOf(c, H.householdId)).toEqual({ n: before.n - 1, counter: before.counter - 1 });
-      expect(await contextHousehold(c)).toBeNull();
-    });
+  it("AC9 : un membre part, member_count baisse de 1 (constate par l'administration apres COMMIT), et app.household_id est vide apres (meme force)", async () => {
+    const leaver = await joinedMember(H, "PartiDedie");
+    const before = await memberCountOf(H.householdId);
+    expect(before.counter).toBe(before.rows);
+    const tx = await openAppTx(leaver.userId);
+    try {
+      await tx.client.query("SELECT set_config('app.household_id', $1, true)", [SENTINEL]);
+      await tx.client.query("SELECT lc.leave_household()");
+      expect(await contextHousehold(tx.client)).toBeNull();
+      await tx.commit();
+    } finally {
+      await tx.rollback();
+      tx.release();
+    }
+    expect(await membershipsOfUser(leaver.userId)).toEqual([]);
+    expect(await memberCountOf(H.householdId)).toEqual({ counter: before.counter - 1, rows: before.rows - 1 });
   });
 });
 
