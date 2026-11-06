@@ -9,10 +9,14 @@
  *   la vraie base : le module lit son environnement par `getServerEnv`, que ce
  *   fichier renseigne depuis les variables de test AVANT l'import. Le secret
  *   d'authentification n'est pas utilise par ce chemin : valeur visiblement fausse.
- * - La branche « article enregistre puis illisible » n'est pas atteignable de
- *   facon deterministe depuis un test (la lecture suit l'ecriture dans la meme
- *   transaction, sans point d'interposition) : elle est declaree dans la fiche
- *   de preuves, pas contournee.
+ * - Branche « article enregistre puis illisible » (D-066, Q-8) : atteinte de facon
+ *   deterministe. Un `remove_member` non commite tient la ligne du foyer
+ *   (trigger du compteur de membres) ; `add_item` du membre vise passe la
+ *   verification du foyer, insere l'article, puis attend ce verrou dans le
+ *   trigger `item_count`. Apres le COMMIT du retrait, la relecture, instruction
+ *   suivante, ne voit plus le foyer : zero ligne, donc NO_HOUSEHOLD et non une
+ *   exception, et l'article reste. Le scenario est joue par l'API reelle et au
+ *   niveau du service ; l'attente est constatee dans pg_stat_activity.
  */
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { loadTestEnv, requireEnv } from "../_factory/env";
@@ -21,8 +25,9 @@ import { membershipsOfUser } from "../helpers/household";
 import { createAccount } from "../helpers/auth";
 import { displayed, home, joinedMember, openAppTx, postJoin, settle, waitUntilBlockedOnLock, type AppTx } from "../helpers/invite";
 import { addItemInOwnTx, itemCountOf, itemRowById, itemRowsOf } from "../helpers/items";
-import { membershipIdOf, deleteMemberAs } from "../helpers/members";
-import { expectStatus } from "../helpers/http";
+import { deleteMemberAs, membershipIdOf, waitUntilQueryBlocked } from "../helpers/members";
+import { expectAppError, expectStatus } from "../helpers/http";
+import { postItem } from "../helpers/items";
 
 loadTestEnv();
 
@@ -107,6 +112,66 @@ describe("AC10 : Q-8, un article ajoute avant ou pendant un retrait reste", () =
       await txM?.rollback();
       await txO?.rollback();
       txM?.release();
+      txO?.release();
+    }
+  });
+});
+
+describe("AC10 : article enregistre puis relecture impossible (deterministe)", () => {
+  const WAITING = "toujours en attente" as const;
+  const pause = (ms: number): Promise<typeof WAITING> => new Promise((r) => setTimeout(() => r(WAITING), ms));
+
+  it("AC10 : par l'API : POST items bloque sur le verrou d'un retrait non commite rend 403 NO_HOUSEHOLD (pas 500), l'article reste avec son auteur, item_count egale les lignes", async () => {
+    const h = await home("Y5");
+    const m = await joinedMember(h, "Retenue");
+    const memberId = await membershipIdOf(m.userId);
+    let txO: AppTx | undefined;
+    try {
+      txO = await openAppTx(h.account.userId);
+      await txO.client.query("SELECT lc.remove_member($1)", [memberId]);
+
+      const post = settle(postItem({ name: "EnVol" }, m.cookie));
+      await waitUntilQueryBlocked("%lc.add_item%", txO.pid);
+      expect(await Promise.race([post, pause(150)]), "la requete du membre attend le COMMIT du retrait").toBe(WAITING);
+
+      await txO.commit();
+      const outcome = await post;
+      expect(outcome.status, "la requete HTTP doit aboutir").toBe("fulfilled");
+      if (outcome.status !== "fulfilled") return;
+      expectAppError(outcome.value, 403, "NO_HOUSEHOLD", "POST items en vol pendant le retrait");
+
+      const rows = await itemRowsOf(h.householdId);
+      expect(rows.map((r) => [r.name, r.author_name, r.author_user_id])).toEqual([["EnVol", "Retenue", m.userId]]);
+      expect(await itemCountOf(h.householdId)).toEqual({ counter: 1, rows: 1 });
+      expect(await membershipsOfUser(m.userId)).toEqual([]);
+    } finally {
+      await txO?.rollback();
+      txO?.release();
+    }
+  });
+
+  it("AC10 : au niveau du service : addItem bloque rend exactement NO_HOUSEHOLD sans exception, l'article reste, item_count egale les lignes", async () => {
+    const h = await home("Y6");
+    const m = await joinedMember(h, "Tenue");
+    const memberId = await membershipIdOf(m.userId);
+    let txO: AppTx | undefined;
+    try {
+      txO = await openAppTx(h.account.userId);
+      await txO.client.query("SELECT lc.remove_member($1)", [memberId]);
+
+      const call = settle(items.addItem(m.userId, { name: "EnVolService", quantity: null }));
+      await waitUntilQueryBlocked("%lc.add_item%", txO.pid);
+      expect(await Promise.race([call, pause(150)]), "addItem attend le COMMIT du retrait").toBe(WAITING);
+
+      await txO.commit();
+      const outcome = await call;
+      expect(outcome.status, outcome.status === "rejected" ? String(outcome.reason) : "addItem ne doit pas lever").toBe("fulfilled");
+      if (outcome.status === "fulfilled") expect(outcome.value).toEqual({ ok: false, error: { status: 403, code: "NO_HOUSEHOLD" } });
+
+      expect((await itemRowsOf(h.householdId)).map((r) => [r.name, r.author_name])).toEqual([["EnVolService", "Tenue"]]);
+      expect(await itemCountOf(h.householdId)).toEqual({ counter: 1, rows: 1 });
+    } finally {
+      await txO?.rollback();
       txO?.release();
     }
   });

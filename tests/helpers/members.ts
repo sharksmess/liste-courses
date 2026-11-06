@@ -75,3 +75,26 @@ export async function membershipRowsOf(householdId: string): Promise<{ id: strin
 export function unknownMemberId(): string {
   return crypto.randomUUID();
 }
+
+/**
+ * Attend (sondage court, borne) qu'une session AUTRE que `excludePid` soit bloquee
+ * sur un verrou en executant une requete dont le texte correspond a `queryLike`
+ * (motif SQL LIKE). Sert quand la connexion appartient au serveur (requete HTTP) :
+ * son `pid` n'est pas connu du test. Echoue avec le dernier etat observe au delai.
+ */
+export async function waitUntilQueryBlocked(queryLike: string, excludePid: number, timeoutMs = 10_000): Promise<number> {
+  const deadline = Date.now() + timeoutMs;
+  let last = "aucune session ne correspond";
+  while (Date.now() < deadline) {
+    const r = await adminPool().query<{ pid: number; wait_event_type: string | null; state: string; query: string }>(
+      "SELECT pid, wait_event_type, state, left(query, 120) AS query FROM pg_stat_activity " +
+        "WHERE datname = current_database() AND pid <> $1 AND pid <> pg_backend_pid() AND query LIKE $2",
+      [excludePid, queryLike],
+    );
+    last = JSON.stringify(r.rows);
+    const blocked = r.rows.find((x) => x.wait_event_type === "Lock");
+    if (blocked) return blocked.pid;
+    await new Promise((resolve) => setTimeout(resolve, 25));
+  }
+  throw new Error(`[tests] aucune session executant "${queryLike}" n'est bloquee sur un verrou apres ${timeoutMs} ms ; derniers etats : ${last}`);
+}
