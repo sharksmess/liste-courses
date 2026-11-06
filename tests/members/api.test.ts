@@ -5,11 +5,11 @@
  */
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createAccount } from "../helpers/auth";
-import { closePools, resetDatabase } from "../helpers/db";
+import { adminPool, closePools, resetDatabase } from "../helpers/db";
 import { getMeAs, membershipsOfUser, postHousehold } from "../helpers/household";
 import { describeResult, expectAppError, expectStatus } from "../helpers/http";
-import { displayed, fillHome, home, joinedMember, memberCountOf, postJoin, type Home } from "../helpers/invite";
-import { addItemInOwnTx, deleteItemAs, getItems, itemCountOf, itemRowById, patchItem, postItem, expectItem, expectList } from "../helpers/items";
+import { displayed, fillHome, home, joinedMember, memberCountOf, postJoin } from "../helpers/invite";
+import { addItemInOwnTx, deleteItemAs, getItems, itemCountOf, itemRowById, itemRowsOf, patchItem, postItem, expectItem, expectList } from "../helpers/items";
 import {
   deleteMemberAs,
   expectMembers,
@@ -39,6 +39,31 @@ describe("AC1 : voir les membres", () => {
     expect(asOwner.map((m) => m.name)).toEqual([h.account.name, "Premiere", "Seconde"]);
     expect(asOwner[1]?.memberId).toBe(await membershipIdOf(first.userId));
     expect(asOwner[2]?.memberId).toBe(await membershipIdOf(second.userId));
+  });
+
+  it("AC1 : l'ordre est joined_at puis id, meme quand l'insertion physique le contredit (joined_at explicite, egalite departagee par id)", async () => {
+    // Lignes amorcees par l'administration, dont l'ordre d'insertion est l'inverse de l'ordre attendu.
+    // Ce que le test prouve : un tri sur l'ordre physique, ou sans departage de l'egalite, echoue.
+    // Ce qu'il ne prouve pas : le departage par id contre un plan qui trierait deja par (joined_at, id).
+    const h = await home("L4");
+    const base = (await membershipRowsOf(h.householdId))[0];
+    if (!base) throw new Error("[tests] la responsable n'a pas d'appartenance");
+    const [smallId = "", largeId = ""] = [crypto.randomUUID(), crypto.randomUUID()].sort();
+    const plan = [
+      { label: "Tardif", id: crypto.randomUUID(), hours: 3 },
+      { label: "EgalGrand", id: largeId, hours: 2 },
+      { label: "EgalPetit", id: smallId, hours: 2 },
+      { label: "Precoce", id: crypto.randomUUID(), hours: 1 },
+    ];
+    for (const p of plan) {
+      const account = await createAccount({ name: p.label });
+      await adminPool().query(
+        "INSERT INTO lc.membership (id, household_id, user_id, role, display_name, joined_at) VALUES ($1, $2, $3, 'member', $4, $5::timestamptz + make_interval(hours => $6::int))",
+        [p.id, h.householdId, account.userId, p.label, base.joined_at, p.hours],
+      );
+    }
+    const listed = expectMembers(await getMembers(h.account.cookie), "GET members");
+    expect(listed.map((m) => m.name)).toEqual([h.account.name, "Precoce", "EgalPetit", "EgalGrand", "Tardif"]);
   });
 
   it("AC1 : aucune adresse e-mail ni identifiant de compte dans la reponse", async () => {
@@ -83,6 +108,7 @@ describe("AC2 : retirer un membre", () => {
 
     expectAppError(await getItems(m.cookie), 403, "NO_HOUSEHOLD", "GET items");
     expectAppError(await postItem({ name: "Apres" }, m.cookie), 403, "NO_HOUSEHOLD", "POST items");
+    expect((await itemRowsOf(h.householdId)).map((r) => r.name), "le POST refuse n'ecrit rien").toEqual(["AvantRetrait"]);
     expectAppError(await patchItem(item.id, { purchased: true }, m.cookie), 403, "NO_HOUSEHOLD", "PATCH items");
     expectAppError(await deleteItemAs(item.id, m.cookie), 403, "NO_HOUSEHOLD", "DELETE items");
     expectAppError(await getMembers(m.cookie), 403, "NO_HOUSEHOLD", "GET members");
@@ -150,11 +176,6 @@ describe("AC3 : quitter le foyer", () => {
 });
 
 describe("AC4 : refus et ordre de verification", () => {
-  let H: Home;
-  beforeAll(async () => {
-    H = await home("V0");
-  });
-
   it("AC4 : sans session, les trois routes donnent 401 UNAUTHENTICATED, y compris avec un memberId mal forme", async () => {
     expectAppError(await getMembers(undefined), 401, "UNAUTHENTICATED", "GET");
     expectAppError(await deleteMemberAs(unknownMemberId(), undefined), 401, "UNAUTHENTICATED", "DELETE");
@@ -211,10 +232,20 @@ describe("AC4 : refus et ordre de verification", () => {
     expect(await memberCountOf(h.householdId)).toEqual({ counter: 1, rows: 1 });
   });
 
-  it("AC4 : la liste de la responsable ne change pas apres des refus", async () => {
-    const before = expectMembers(await getMembers(H.account.cookie), "avant");
-    await deleteMemberAs("pas-un-uuid", H.account.cookie);
-    expect(expectMembers(await getMembers(H.account.cookie), "apres")).toEqual(before);
+  it("AC4 : apres une serie de refus (membre, auto-retrait, cible mal formee, inexistante, depart de la responsable), la liste et les compteurs sont inchanges", async () => {
+    const h = await home("V5");
+    const m = await joinedMember(h, "Simple");
+    await joinedMember(h, "Autre");
+    const ownerId = await membershipIdOf(h.account.userId);
+    const before = expectMembers(await getMembers(h.account.cookie), "avant");
+    expect(before).toHaveLength(3);
+    expectAppError(await deleteMemberAs(before[2]?.memberId ?? "", m.cookie), 403, "INSUFFICIENT_ROLE", "membre");
+    expectAppError(await deleteMemberAs(ownerId, h.account.cookie), 409, "OWNER_CANNOT_BE_REMOVED", "auto-retrait");
+    expectAppError(await deleteMemberAs("pas-un-uuid", h.account.cookie), 404, "MEMBER_NOT_FOUND", "mal forme");
+    expectAppError(await deleteMemberAs(unknownMemberId(), h.account.cookie), 404, "MEMBER_NOT_FOUND", "inexistant");
+    expectAppError(await postLeave(h.account.cookie), 409, "OWNER_CANNOT_LEAVE", "depart de la responsable");
+    expect(expectMembers(await getMembers(h.account.cookie), "apres")).toEqual(before);
+    expect(await memberCountOf(h.householdId)).toEqual({ counter: 3, rows: 3 });
   });
 });
 
@@ -241,6 +272,22 @@ describe("AC6 : retour apres un depart (API)", () => {
     expect(expectList(await getItems(removed.cookie), "liste de l'autre foyer").map((i) => i.name)).toEqual(["ListeDeB3"]);
     expectStatus(await postJoin(displayed(h.code), left.cookie), 200, "partie revient dans le meme foyer");
     expect(expectList(await getItems(left.cookie), "liste du meme foyer").map((i) => i.name)).toEqual(["ListeDeB2"]);
+  });
+
+  it("AC6 : croisement inverse : la personne partie rejoint un autre foyer, la retiree revient dans le meme avec le code en vigueur, et chacune retrouve la liste", async () => {
+    const h = await home("B6");
+    const other = await home("B7");
+    expectItem(await postItem({ name: "ListeDeB6" }, h.account.cookie), 201, "article de B6");
+    expectItem(await postItem({ name: "ListeDeB7" }, other.account.cookie), 201, "article de B7");
+    const removed = await joinedMember(h, "Retiree");
+    const left = await joinedMember(h, "Partie");
+    expectStatus(await deleteMemberAs(await membershipIdOf(removed.userId), h.account.cookie), 200, "retrait");
+    expectStatus(await postLeave(left.cookie), 200, "depart");
+
+    expectStatus(await postJoin(displayed(other.code), left.cookie), 200, "la partie rejoint un autre foyer");
+    expect(expectList(await getItems(left.cookie), "liste de l'autre foyer").map((i) => i.name)).toEqual(["ListeDeB7"]);
+    expectStatus(await postJoin(displayed(h.code), removed.cookie), 200, "la retiree revient dans le meme foyer");
+    expect(expectList(await getItems(removed.cookie), "liste du meme foyer").map((i) => i.name)).toEqual(["ListeDeB6"]);
   });
 
   it("AC6 : US-06.2 : les articles d'une personne retiree et d'une personne partie sont rendus avec son prenom pour les restants", async () => {

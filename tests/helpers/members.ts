@@ -63,9 +63,9 @@ export async function membershipIdOf(userId: string): Promise<string> {
 }
 
 /** Lignes d'appartenance d'un foyer, dans l'ordre d'entree (joined_at, id). */
-export async function membershipRowsOf(householdId: string): Promise<{ id: string; user_id: string; role: string; display_name: string }[]> {
-  const r = await adminPool().query<{ id: string; user_id: string; role: string; display_name: string }>(
-    "SELECT id, user_id, role, display_name FROM lc.membership WHERE household_id = $1 ORDER BY joined_at, id",
+export async function membershipRowsOf(householdId: string): Promise<{ id: string; user_id: string; role: string; display_name: string; joined_at: Date }[]> {
+  const r = await adminPool().query<{ id: string; user_id: string; role: string; display_name: string; joined_at: Date }>(
+    "SELECT id, user_id, role, display_name, joined_at FROM lc.membership WHERE household_id = $1 ORDER BY joined_at, id",
     [householdId],
   );
   return r.rows;
