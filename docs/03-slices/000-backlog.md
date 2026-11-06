@@ -75,10 +75,18 @@ Regroupements :
 
 ## Suites de la tranche 002 (audit-002, review-002)
 - **Corps de requete non borne** : `request.json()` lit tout le corps avant la validation, sur `POST /api/household/join` et `POST /api/household`, sans limite de taille cote Next. Un compte gratuit peut saturer la memoire avec un `code` de plusieurs centaines de Mo. Borner la taille pour toutes les routes JSON, ou au proxy, avant toute mise en ligne (audit-002, MINEUR-1 ; D-011). Un changement de `InviteCodeInput` releve de l'humain.
-- **`readJson` et squelette de `POST` recopies** dans `api/household/join/route.ts` : factoriser dans `lib/`, ce qui touche `api/household/route.ts`, avant que 003 et 004 multiplient la copie (review-002, suggestion 9).
+- **Squelette de `POST` recopie** dans les Route Handlers : `readJson` et `failedFields` sont factorises dans `lib/request.ts` (tranche 003), l'enchainement session, foyer, validation, reponse reste recopie. A factoriser si 004 ajoute une troisieme copie du meme enchainement (review-002, suggestion 9 ; review-003, point 7).
 - **`10` en dur dans le message `HOUSEHOLD_FULL`** (`ui/messages.ts`) : retirer le nombre ou noter le couplage avec `household_member_limit` (review-002, suggestion 12).
 - **Renforts AC8** : verifier que le code de la responsable figure dans une balise `<script>` de sa propre page, et faire une requete `RSC: 1` cote membre (review-002, suggestion 13).
 - **Cablage client des ecrans** : chemin, cle `code`, affichage de l'erreur et `router.refresh()` n'ont aucune preuve automatique sans robot de navigateur (D-027). A verifier a la visite guidee apres 004 (D-053, D-057).
+
+## Suites de la tranche 003 (audit-003, review-003)
+- **`addItem`, foyer perdu entre `add_item` et la relecture** : a traiter dans 004, qui rend le cas atteignable. Aujourd'hui, `lib/items.ts` leve apres le `COMMIT` si la relecture ne rend rien : en 004, un retrait a cet instant donnerait un 500 pour un article enregistre. Attendu : un resultat type, avec un test (review-003, point 3).
+- **Fenetre 404 au lieu de 403** : `inHousehold` lit le foyer puis agit en deux instructions ; un membre retire entre les deux touche zero ligne et recoit `ITEM_NOT_FOUND`. Aucune ecriture ne passe et rien n'est revele. A rejouer en 004, seule tranche qui cree des departs (audit-003, review-003 point 3).
+- **Contrat de 004, borne des membres** : un `join_household` a 10 membres pendant un depart non commite recoit `LC004` tout de suite, par le meme mecanisme que `LC008` (ERD §5). A ecrire dans le contrat de 004 (review-003, suggestion 10).
+- **`NO_HOUSEHOLD` cote client** : un membre retire qui agit sur la liste voit le message generique et aucun rechargement. A traiter dans 004 (review-003, suggestion 9).
+- **Details du client a juger a la visite guidee apres 004** : un seul `pendingId` pour toute la liste, fenetre entre la fin de la requete et la fin du `refresh`, erreur qui persiste jusqu'a l'action suivante (review-003, suggestion 9 ; D-059).
+- **Corps de requete non borne** : la suite de 002 vaut aussi pour `POST` et `PATCH /api/household/items` ; sur `PATCH`, le corps est lu avant la verification du foyer, et un compte sans foyer suffit (audit-003, MINEUR-1).
 
 ## Hors backlog (hors perimetre du PRD)
 Recuperation de mot de passe, suppression de compte et RGPD (R1), notifications, temps reel, plusieurs listes, historique, transfert du role de responsable, modification d'un article ou du prenom. Tout ajout passe par une mise a jour du PRD et une decision humaine.
