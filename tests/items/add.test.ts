@@ -128,7 +128,7 @@ const SENTINEL = "VALEUR-RECUE-INVENTEE";
 
 describe("AC3 : ajout refuse par la validation", () => {
   async function expectRejected(payload: unknown, field: "name" | "quantity", label: string): Promise<void> {
-    const h = await home(`AV${Math.abs(label.length)}`);
+    const h = await home("AV");
     const before = await itemCountOf(h.householdId);
     const r = await postItem(payload, h.account.cookie);
     expectAppError(r, 422, "VALIDATION_FAILED", label);

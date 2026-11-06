@@ -142,6 +142,7 @@ describe("AC5 : Isolation tenant (entre foyers), en base sous lc_app", () => {
         expect(delByHousehold, describeAttempt(`DELETE par foyer B (force=${forced})`, delByHousehold)).toEqual({ ok: true, rowCount: 0 });
       }
     });
+    // La preuve est rowCount: 0 ci-dessus ; les deux lignes suivantes ne constatent que l'absence d'effet.
     expect((await itemRowById(itemB))?.purchased).toBe(false);
     expect(await itemCountOf(B.householdId)).toEqual({ counter: 1, rows: 1 });
   });

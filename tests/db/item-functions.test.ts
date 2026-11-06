@@ -143,7 +143,7 @@ describe("AC10 : table lc.item", () => {
       expect.arrayContaining(["id", "household_id", "name", "quantity", "purchased", "author_user_id", "author_name", "created_at"]),
     );
     const table = await adminPool().query<{ v: boolean }>("SELECT has_table_privilege('lc_app', 'lc.item', 'UPDATE') AS v");
-    // has_table_privilege rend true des qu'il existe un droit de colonne ? Non : seulement pour un droit de table.
+    // has_table_privilege ne regarde que le droit de table : le droit de colonne sur purchased ne le rend pas vrai.
     expect(table.rows[0]?.v).toBe(false);
   });
 
@@ -345,7 +345,7 @@ describe("AC10 : lc.item_count_trg", () => {
     });
   });
 
-  it("AC10 : le compteur suit chaque insertion et chaque suppression, et lc_app ne peut pas le contourner", async () => {
+  it("AC10 : le compteur suit chaque insertion et chaque suppression sous lc_app (la transaction annulee ne laisse aucun effet)", async () => {
     const h = await home("DV");
     const ids: string[] = [];
     for (const n of ["a", "b", "c"]) ids.push(await addItemInOwnTx(h.account.userId, n));

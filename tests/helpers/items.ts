@@ -5,8 +5,8 @@
  * `lc_app` (le compteur est tenu par le trigger, jamais pose a la main).
  *
  * Routes lues depuis les contrats (docs/02-architecture/api-contracts/items.ts).
- * Tant que la migration n'existe pas, seuls les helpers qui touchent `lc.item`
- * ou `lc.add_item` echouent (a l'appel) : l'import de ce module est sans effet.
+ * Les helpers qui touchent `lc.item`
+ * ou `lc.add_item` lisent la vraie base ; l'import du module est sans effet.
  *
  * Marqueurs d'ecran imposes a l'implementeur (HTML rendu, AC9) :
  *   <ul data-testid="item-list">          liste (sans `<li` quand elle est vide)
