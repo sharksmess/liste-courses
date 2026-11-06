@@ -1,0 +1,1 @@
+- [zod max en points de code](zod-max-code-points.md) — zod 4.6.7 : .max() compte les points de code, faux positif a eviter

@@ -5,3 +5,4 @@
 export { signUp } from "../../../../docs/02-architecture/api-contracts/auth";
 export { createHousehold, getMe, joinHousehold } from "../../../../docs/02-architecture/api-contracts/household";
 export { getInviteCode, regenerateInviteCode } from "../../../../docs/02-architecture/api-contracts/invite-code";
+export { addItem, deleteItem, listItems, setItemPurchased } from "../../../../docs/02-architecture/api-contracts/items";

@@ -9,16 +9,9 @@ import { getSessionUser } from "@/lib/auth";
 import { createHousehold as contract } from "@/lib/contracts";
 import { alreadyInHousehold, errorResponse, unauthenticated, validationFailed } from "@/lib/errors";
 import { createHousehold, findHousehold } from "@/lib/household";
+import { failedFields, readJson } from "@/lib/request";
 
 export const dynamic = "force-dynamic";
-
-async function readJson(request: Request): Promise<unknown> {
-  try {
-    return (await request.json()) as unknown;
-  } catch {
-    return undefined;
-  }
-}
 
 export async function POST(request: Request): Promise<NextResponse> {
   const user = await getSessionUser(request.headers);
@@ -28,8 +21,7 @@ export async function POST(request: Request): Promise<NextResponse> {
   if (!parsed.success) {
     // Un compte qui a deja un foyer recoit 409 avant toute validation (ADR-0003).
     if (await findHousehold(user.id)) return errorResponse(alreadyInHousehold());
-    const fields = [...new Set(parsed.error.issues.map((issue) => issue.path.join(".") || "(corps)"))];
-    return errorResponse(validationFailed(fields));
+    return errorResponse(validationFailed(failedFields(parsed.error)));
   }
 
   const result = await createHousehold(user.id, parsed.data.name);

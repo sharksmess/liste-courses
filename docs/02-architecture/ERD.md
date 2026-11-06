@@ -644,8 +644,11 @@ articles) :
 - **Meme compte, deux adhesions ou creations concurrentes** : `membership_user_key` serialise ; la
   seconde leve `unique_violation`, traduite en `LC002`.
 - **Adhesion et regeneration concurrentes** : verrou `FOR SHARE` (§4.4, 6).
-- **Suppression d'article et ajout concurrents** : les deux passent par le verrou du foyer ; ordre
-  de verrouillage identique (ligne `item`, puis ligne `household`), pas d'interblocage.
+- **Suppression d'article et ajout concurrents** : sous la borne, l'ajout attend le verrou du foyer
+  tenu par la suppression ; ordre de verrouillage identique (ligne `item`, puis ligne `household`),
+  pas d'interblocage. A la borne, un ajout concurrent d'une suppression non commitee recoit `LC008`
+  tout de suite : Postgres evalue le `CHECK` sur la version de son instantane avant d'attendre le
+  verrou. La borne tient, et la place n'est liberee qu'au `COMMIT` de la suppression (US-09.3).
 - **Ajout d'un article concurrent au retrait de son auteur** : l'ajout peut commiter juste apres le
   retrait ; l'article reste, comme tout article d'une personne retiree (US-12.2). Accepte (Q-8).
 - **Derive du compteur** : impossible par construction (seuls `INSERT` et `DELETE` le modifient, sous
@@ -783,7 +786,7 @@ schema `@lc/db/schema` declare par `pgSchema("lc_auth")`) et `advanced.database.
 
 ---
 
-## 9. Implementation (tranches 001 et 002) et ecarts
+## 9. Implementation (tranches 001 a 003) et ecarts
 
 Migrations (`packages/db/migrations`, journal Drizzle, appliquees par `src/migrate.ts` avec le
 migrateur de drizzle-orm ; historique dans le schema `drizzle`) :
@@ -796,6 +799,8 @@ migrateur de drizzle-orm ; historique dans le schema `drizzle`) :
 | `0003_auth_rls.sql` | `--custom` | proprietaire, RLS forcee, privileges et politiques de `lc_auth` |
 | `0004_household.sql` | `--custom` | proprietaire, RLS, privileges et politiques de `lc` ; `current_household_id`, `context_household_id`, `new_invite_code`, triggers de `membership`, `create_household` |
 | `0005_join_invite_code.sql` | `--custom` | tranche 002 : `join_household`, `get_invite_code`, `regenerate_invite_code` (§4.4, §4.5) ; aucune table, politique ni role |
+| `0006_item.sql` | generee | tranche 003 : table `lc.item`, ses contraintes, cles `RESTRICT` et `item_household_order_idx` (§3.5) |
+| `0007_item_rls_functions.sql` | `--custom` | tranche 003 : proprietaire, RLS forcee, privileges et cinq politiques de `lc.item` ; `item_count_trg` et son trigger, `add_item` (§4.8, §4.9) |
 
 Ecarts a la specification, tous mineurs :
 - **Variable de connexion de better-auth** : `AUTH_DATABASE_URL` (contrat de tranche), pas
@@ -806,10 +811,13 @@ Ecarts a la specification, tous mineurs :
   (§2 ne le mentionnait pas ; §4.10 le demande pour toutes les fonctions internes).
 - **`invite_code_definer_lookup`** est creee des la tranche 001 avec les autres politiques de la
   table, bien que seule `join_household()` (tranche 002) pose `app.invite_code_lookup`.
-- **Trigger de compteur** : `membership_count` (`AFTER INSERT OR DELETE`) ; les deux triggers
+- **Triggers de compteur** : `membership_count` et, tranche 003, `item_count` (`AFTER INSERT OR DELETE`) ; les deux triggers
   d'invariant s'appellent comme leurs fonctions (`membership_protect_owner`, `membership_immutable`).
-- `lc.item`, `add_item` et `item_count_trg` : tranche 003 (contrat de 001, « NE touche PAS »).
 - **Tranche 002** : `get_invite_code` et `regenerate_invite_code` remettent aussi
   `app.invite_code_lookup` a vide avant de rendre la main (§4.5 ne citait que `app.household_id` ;
   critere AC9). Dans `regenerate_invite_code`, un tirage egal au code en vigueur compte parmi les
   5 essais : la boucle reste bornee.
+- **§4.1 point 3, sortie en erreur** : la remise a vide de `app.household_id` n'a lieu qu'a la sortie
+  normale. Sur erreur, `add_item` (`LC008`, `23514`) rend la main sans la faire : l'exception annule
+  la transaction, ou revient au point de sauvegarde de l'appelant, ce qui retablit la valeur d'alors.
+  Aucune instruction ne peut donc voir le foyer pose par la fonction.
