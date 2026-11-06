@@ -16,7 +16,7 @@ export const household = lc.table(
     name: text("name").notNull(),
     /** Tenu par trigger (ERD §4.9) ; seule borne de 10 membres en base. */
     memberCount: integer("member_count").notNull().default(0),
-    /** Tenu par trigger (tranche 003) ; seule borne de 200 articles en base. */
+    /** Tenu par trigger (ERD §4.9) ; seule borne de 200 articles en base. */
     itemCount: integer("item_count").notNull().default(0),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
