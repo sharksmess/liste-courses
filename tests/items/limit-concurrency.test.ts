@@ -161,7 +161,7 @@ describe("AC8 : serialisation observee (deterministe, deux connexions lc_app)", 
     }
   });
 
-  it("AC8 : un ajout attend une suppression non commitee de la meme ligne de compteur, puis reussit apres son COMMIT", async () => {
+  it("AC8 : une suppression non commitee a 200 ne libere rien : l'ajout concurrent recoit LC008 tout de suite, puis reussit apres le COMMIT", async () => {
     const h = await home("S2");
     const member = await joinedMember(h, "Second");
     await seedItems(h.account.userId, 199);
@@ -175,12 +175,16 @@ describe("AC8 : serialisation observee (deterministe, deux connexions lc_app)", 
       const deleted = await txA.client.query("DELETE FROM lc.item WHERE id = $1", [target]);
       expect(deleted.rowCount).toBe(1);
 
-      const pending = settle(txB.client.query("SELECT lc.add_item('Apres la suppression', NULL)"));
-      await waitUntilBlockedOnLock(txB.pid);
+      // Refus immediat, sans attente (mesure sur Postgres 16) : le CHECK est evalue sur la version de
+      // l'instantane (200 + 1) avant l'attente du verrou de ligne. Refus pessimiste, la borne tient.
+      const outcome = await settle(txB.client.query("SELECT lc.add_item('Pendant la suppression', NULL)"));
+      expect(outcome.status).toBe("rejected");
+      expect(outcome.status === "rejected" ? pgCode(outcome.reason) : undefined).toBe("LC008");
+      await txB.rollback();
+
       await txA.commit();
-      const outcome = await pending;
-      expect(outcome.status, outcome.status === "rejected" ? String(pgCode(outcome.reason)) : "").toBe("fulfilled");
-      await txB.commit();
+      expect(await itemCountOf(h.householdId)).toEqual({ counter: 199, rows: 199 });
+      await addItemInOwnTx(member.userId, "Apres la suppression");
       expect(await itemCountOf(h.householdId)).toEqual({ counter: 200, rows: 200 });
     } finally {
       await txA?.rollback();
