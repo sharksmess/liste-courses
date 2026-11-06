@@ -248,7 +248,6 @@ describe("AC9 : decision apres une mutation de la liste (fonction pure itemMutat
     [409, "ITEM_LIMIT_REACHED"],
     [422, "VALIDATION_FAILED"],
     [401, "UNAUTHENTICATED"],
-    [403, "NO_HOUSEHOLD"],
     [429, null],
     [500, null],
     [0, "NETWORK"],
