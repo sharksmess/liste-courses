@@ -70,7 +70,7 @@ describe("AC6 : cocher et decocher", () => {
 
   it.each(invalid)("AC6 : %s donne 422 avec fields contenant purchased, et l'etat ne change pas", async (label, payload) => {
     const id = await newItem(H.account.cookie, "Intact");
-    await patchItem(id, { purchased: true }, H.account.cookie);
+    expectItem(await patchItem(id, { purchased: true }, H.account.cookie), 200, "preparation : cocher");
     const before = await itemRowById(id);
     const r = await patchItem(id, payload, H.account.cookie);
     expectAppError(r, 422, "VALIDATION_FAILED", label);
@@ -79,10 +79,17 @@ describe("AC6 : cocher et decocher", () => {
     expect(await itemRowById(id)).toEqual(before);
   });
 
-  it("AC6 : un corps non JSON ou absent donne 422 sur un article present, sans changer l'etat", async () => {
+  it.each([
+    ["corps non JSON", "{pas du json"],
+    ["corps absent", ""],
+    ["corps JSON null", "null"],
+    ["corps JSON tableau", "[]"],
+    ["corps JSON chaine", '"vrai"'],
+  ])("AC6 : %s donne 422 avec fields egal a [\"(corps)\"] sur un article present, sans changer l'etat", async (label, raw) => {
     const id = await newItem(H.account.cookie, "Corps casse");
-    expectAppError(await patchItemRaw(id, "{pas du json", H.account.cookie), 422, "VALIDATION_FAILED", "non JSON");
-    expectAppError(await patchItemRaw(id, "", H.account.cookie), 422, "VALIDATION_FAILED", "corps absent");
+    const r = await patchItemRaw(id, raw, H.account.cookie);
+    expectAppError(r, 422, "VALIDATION_FAILED", label);
+    expect((r.body as { error: { fields?: string[] } }).error.fields, describeResult(`${label} : fields`, r)).toEqual(["(corps)"]);
     expect((await itemRowById(id))?.purchased).toBe(false);
   });
 
