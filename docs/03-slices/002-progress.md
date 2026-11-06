@@ -3,17 +3,17 @@
 Tenu par l'implementeur apres **chaque commit**. C'est ce fichier, pas la conversation, qui permet de reprendre apres une interruption.
 
 ## Etat
-- Statut : implementee, relecture faite, correctifs de relecture (points 1 a 8, 10, 11, 14) appliques (`docs/04-runbooks/audits/review-002.md`)
+- Statut : implementee, deux passages de relecture faits, correctifs appliques (points 1 a 8, 10, 11, 14, puis S1 a S6) (`docs/04-runbooks/audits/review-002.md`)
 - Branche : slice/002-rejoindre-foyer
-- Dernier commit de code : 76d4e6f ; dernier commit de test : 4174ea3
-- Prochaine etape : second passage de `code-reviewer`, puis `close-slice.sh`
+- Dernier commit de code : 76d4e6f ; dernier commit de test : d619b7e
+- Prochaine etape : `close-slice.sh`, puis `ship-slice.sh`, puis arret pour fusion humaine
 
 ## Couches
 - [x] Migration : fcd81ca (`0005_join_invite_code.sql`, ERD §9)
 - [x] Acces donnees et logique metier : b9e57f4 (`lib/household.ts`, `lib/invite-code.ts`, `errors.ts`, `contracts.ts`)
 - [x] API : 33ad8ac (`api/household/join`, `api/household/invite-code`)
 - [x] UI : 847aa2b (`/no-household`, `/household`, `ui/join-household-form.tsx`, `ui/regenerate-invite-code-button.tsx`, `ui/messages.ts`)
-- [x] Suite complete verte + `pnpm run check` : 18 fichiers, 227 tests passes ; `check` sort 0 (sur 76d4e6f)
+- [x] Suite complete verte : 18 fichiers, 228 tests passes (sur d619b7e) ; `pnpm run check` rejoue par la cloture
 
 ## Blocages
 <!-- cause, essais, options. Vide = aucun. -->

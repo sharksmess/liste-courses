@@ -9,6 +9,7 @@
 - Implementation par `slice-implementer`, une couche par commit : migration `0005_join_invite_code.sql` (`fcd81ca`), service (`b9e57f4`), API (`33ad8ac`), ecrans (`847aa2b`).
 - Trois relecteurs : `AUDIT: PASS`, `CONTRACTS: PASS`, `REVIEW: PASS` sans BLOQUANT, mais avec huit A CORRIGER sur la force des preuves.
 - Ces points ont ete traites dans la tranche plutot que renvoyes au backlog (D-057) : concurrence observee et non seulement lancee, boucle de regeneration executee, assertions d'isolation qui peuvent echouer (`d1cd609` a `e5ea7bf`, `76d4e6f`, `4174ea3`). La suite passe de 213 a 227 tests, sans reveler de defaut d'implementation.
+- Second passage de `code-reviewer` : `REVIEW: PASS`, trois A CORRIGER traites (borne haute des essais et filtre de `get_invite_code` dans `d619b7e`, ligne parasite de `FRICTION.md`). La suite atteint 228 tests.
 
 ## Decisions
 - D-052 : passage autonome de 002 a 004 (humain).
