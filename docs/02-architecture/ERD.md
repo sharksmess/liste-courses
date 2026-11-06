@@ -817,3 +817,7 @@ Ecarts a la specification, tous mineurs :
   `app.invite_code_lookup` a vide avant de rendre la main (§4.5 ne citait que `app.household_id` ;
   critere AC9). Dans `regenerate_invite_code`, un tirage egal au code en vigueur compte parmi les
   5 essais : la boucle reste bornee.
+- **§4.1 point 3, sortie en erreur** : la remise a vide de `app.household_id` n'a lieu qu'a la sortie
+  normale. Sur erreur, `add_item` (`LC008`, `23514`) rend la main sans la faire : l'exception annule
+  la transaction, ou revient au point de sauvegarde de l'appelant, ce qui retablit la valeur d'alors.
+  Aucune instruction ne peut donc voir le foyer pose par la fonction.

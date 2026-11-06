@@ -5,23 +5,23 @@ Tenu par l'implementeur apres **chaque commit**. C'est ce fichier, pas la conver
 ## Etat
 - Statut : ouverte
 - Branche : slice/003-liste-courses
-- Dernier commit : f65862a feat(items): ecran de la liste et formulaire d'ajout
-- Prochaine etape : orchestrateur : relecteurs, registre, cloture (`close-slice.sh`)
+- Dernier commit de code : 0bc8bb6 refactor(items): decision apres mutation et corps types sur le contrat (suivi du commit de journal `docs(slice-003)`, voir `git log`)
+- Prochaine etape : orchestrateur : registre, cloture (`close-slice.sh`)
 
 ## Couches
 - [x] Migration (0b24a59 : 0006, 0007, ERD §9 ; 92 tests sur 94 verts dans tests/db et tests/_factory, les 2 rouges sont les defauts de tests ci-dessous)
 - [x] Acces donnees (ae39972, `lib/items.ts`, typecheck vert ; prouve par les tests d'API)
 - [x] Logique metier (ae39972)
 - [x] API (8d33086 ; 132 tests sur 133 sur add, list, permissions, toggle-delete, limit-concurrency, household/create, invite-code/join ; `tests/isolation/items.test.ts` attend la page)
-- [x] UI (f65862a)
-- [x] Suite complete verte + `pnpm run check` (375 tests sur 375, 108,55 s, `.logs/003-impl-1.log` ; check propre, `.logs/003-impl-check.log`)
+- [x] UI (f65862a, suites de relecture 0bc8bb6)
+- [x] Suite complete verte + `pnpm run check` (apres 0bc8bb6 : 391 tests sur 391, 77,01 s, check propre)
 
 ## Blocages
 <!-- cause, essais, options. Vide = aucun. -->
 - Resolu : option 1 retenue par l'orchestrateur, test aligne par `test-writer` (29302b2), ERD §5 corrige. Voir Decisions.
 - **`tests/items/limit-concurrency.test.ts:179`, AC8 « un ajout attend une suppression non commitee de la meme ligne de compteur, puis reussit apres son COMMIT »** : en echec, a trancher avant la suite (`.logs/003-impl-api-1.log`). Test non modifie.
-  - Constat : a 200 articles commites, avec un `DELETE` non commite dans A, `add_item` dans B ne bloque pas : il rend `LC008` en 20 ms (`.logs/003-impl-diagnostic-2-resultat.log`, test jetable supprime). `waitUntilBlockedOnLock` expire donc.
-  - Cause : en `READ COMMITTED`, Postgres evalue le `CHECK` sur la nouvelle version calculee depuis la ligne de son instantane, **avant** de tenter `heap_update` et d'attendre le verrou. 200 + 1 viole `household_item_limit` tout de suite. L'attente n'existe que si le pre-controle passe, comme a 199 (le test voisin, a 199, est vert).
+  - Constat : a 200 articles commites, avec un `DELETE` non commite dans A, `add_item` dans B ne bloque pas : il rend `LC008` en 20 ms (mesure d'un test jetable, supprime). `waitUntilBlockedOnLock` expire donc. La preuve durable est le scenario deterministe de `limit-concurrency.test.ts`, « une suppression non commitee a 200 ne libere rien » ; les fichiers `.logs/` cites dans cette section ne sont pas versionnes.
+  - Cause : en `READ COMMITTED`, Postgres evalue le `CHECK` sur la nouvelle version calculee depuis la ligne de son instantane, **avant** de tenter `heap_update` et d'attendre le verrou. 200 + 1 viole `household_item_limit` tout de suite. L'attente n'existe que si le pre-controle passe, comme a 199 : le scenario deterministe de `limit-concurrency.test.ts`, « sous la borne (199), une suppression non commitee bloque l'ajout concurrent », l'observe.
   - Consequence : la phrase de l'ERD §5 « les deux passent par le verrou du foyer » est fausse a la borne. Aucun depassement : la borne tient, le refus est seulement pessimiste (409 alors qu'une suppression est en cours). AC8 l'admet : « 199 ou 200 selon l'ordre ».
   - Option 1, corriger le test : admettre le refus immediat, ou le remplacer par ce qui est garanti. Aucun changement de code ; corriger la phrase de l'ERD §5.
   - Option 2, changer la base : verrou explicite du foyer dans `add_item` avant l'insertion (`FOR NO KEY UPDATE`), par une nouvelle migration `CREATE OR REPLACE`. L'ajout attendrait et reussirait. Ecart a l'ERD §4.8, a decider ; non essaye.
@@ -44,4 +44,6 @@ Tenu par l'implementeur apres **chaque commit**. C'est ce fichier, pas la conver
 - **Liste entiere en composant client `ui/item-list.tsx`**, nourri par la page : le message de `ITEM_NOT_FOUND` doit survivre au rechargement qui retire la ligne. `Item` n'expose ni foyer ni identifiant d'auteur, et ces donnees sont deja affichees a ce meme membre : rien de sensible dans les props (`rules/nextjs.md`). Ecarte : des boutons client par ligne, dont le message disparaitrait avec la ligne.
 - **Pas de `maxLength` sur les champs d'article** : le navigateur compte des unites UTF-16, et refuserait 100 emoji que le contrat accepte. La borne reste au serveur, en points de code.
 - **Foyer perdu entre `currentViewer` et `listItems` sur la page** : redirection vers `/no-household`, comme sans foyer, pour la coupure de 004. Ecarte : une erreur de page, ce cas etant attendu.
-- **Contexte non remis a vide avant `LC008`** : `add_item` releve l'erreur sans reset, parce qu'une exception annule de toute facon le `set_config` local fait dans le bloc ; le retour au point de sauvegarde ou le ROLLBACK restaure le reglage (teste en AC10).
+- **Contexte non remis a vide avant `LC008`** : `add_item` releve l'erreur sans reset, parce qu'une exception annule de toute facon le `set_config` pose juste avant le bloc : le retour au point de sauvegarde ou le ROLLBACK retablit le reglage. Nuance de l'ERD §4.1 point 3, ecrite a l'ERD §9. Le test AC10 `item-functions.test.ts:312` ne pose aucune valeur avant l'appel : il montre l'absence de fuite, pas une restauration.
+- **`itemMutationEffect` dans `ui/messages.ts`** (review-003, point 4) : la decision apres mutation devient une fonction pure testee, comme `joinErrorMessage` en 002. Les corps envoyes sont types sur `z.input` des contrats, en imports de types seuls : une faute de cle sur `quantity` ou `purchased` a bien echoue a `tsc`, essai fait puis annule. Ecarte : garder `payload: unknown`, qui laissait passer la faute jusqu'a la visite.
+- **`throw` apres le `COMMIT` de `addItem` laisse en l'etat** (review-003, point 3) : inatteignable tant qu'aucun depart n'existe ; suite au backlog de 004, sur consigne de l'orchestrateur.
