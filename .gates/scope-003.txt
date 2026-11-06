@@ -1,0 +1,15 @@
+apps/web/src/app/api/household/items/*
+apps/web/src/app/api/household/items/[itemId]/*
+apps/web/src/app/api/household/route.ts
+apps/web/src/app/api/household/join/route.ts
+apps/web/src/app/household/*
+apps/web/src/lib/*
+apps/web/src/ui/*
+packages/db/src/schema/*
+packages/db/migrations/*
+packages/db/migrations/**/*
+tests/helpers/*
+tests/items/*
+tests/household/*
+tests/isolation/*
+tests/db/*

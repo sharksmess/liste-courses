@@ -25,3 +25,9 @@ Tenu au fil de l'eau par l'orchestrateur (`/run-queue`). Consigne : `docs/04-run
 - **Arret pour fusion humaine** (consigne, skill §1). Duree de la tranche : deux sessions (2026-11-05 et 2026-11-06, coupure par limite d'usage). Reprise : l'humain fusionne la PR #5, valide D-054 a D-057, puis relance `/run-queue` ; verifier alors que `main` contient la fusion, puis ouvrir 003.
 - **Incident apres cloture (2026-11-06)** : le push de `ba8706a` (documentation seule) a ete refuse par le pre-push, tests en echec, test inconnu car sortie tronquee. Relance de diagnostic verte (228/228). Echec intermittent non explique : condition d'arret « suite de tests en echec apres cloture », pas de nouveau push. La PR #5 reste sur `d2b7e24` (CI verte) ; ce commit et le precedent ne sont que locaux, l'humain arbitre (`FRICTION.md`).
 - Diagnostic demande par l'humain (2026-11-06) : dix passages de `pnpm test` sur `37037fd`, tous verts (228/228), l'un d'eux lent (459 s). Echec non reproduit, consigne dans `FRICTION.md`. D-058 et D-059 inscrites. Commits de documentation pousses sur la PR #5, puis arret pour fusion humaine.
+
+## Tranche 003 — La liste de courses
+- Reprise le 2026-11-06 : `main` contient la fusion de 002 (6d144d4, PR #5), arbre propre. PR ouverte : #1 (Dependabot, sans rapport). Budget de ce passage : la seule tranche 003, arret apres `ship-slice.sh`.
+- Regle ajoutee par l'humain pour ce passage : jamais de sortie de tests ni de push coupee (ni `tail` ni `head`) ; sortie complete conservee dans un fichier ; un passage de tests de plus de trois fois la duree habituelle est note ici avec sa duree. Sorties dans `.logs/` (ignore par git, `*.log`). Duree habituelle de reference : 53 a 60 s pour 228 tests (FRICTION 2026-11-06), a reestimer une fois la suite de 003 ecrite.
+- Etat : ouverte sur `slice/003-liste-courses` depuis `main`.
+- Prochaine etape : `test-writer`.
