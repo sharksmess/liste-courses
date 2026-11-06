@@ -5,8 +5,8 @@ Tenu par l'implementeur apres **chaque commit**. C'est ce fichier, pas la conver
 ## Etat
 - Statut : ouverte
 - Branche : slice/003-liste-courses
-- Dernier commit : ouverture de la tranche
-- Prochaine etape : `test-writer`
+- Dernier commit : test(items): ecran de la liste AC9 (tests AC1 a AC10 ecrits, rouges pour la bonne raison)
+- Prochaine etape : implementeur (migration, puis couches suivantes) ; test-writer termine
 
 ## Couches
 - [ ] Migration
