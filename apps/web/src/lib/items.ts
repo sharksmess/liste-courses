@@ -95,6 +95,9 @@ export function findItem(userId: string, itemId: string): Promise<Result<Item>> 
  * transaction. `LC008` et `LC009` (foyer perdu depuis la verification de la
  * route) deviennent des erreurs typees ; toute autre erreur est un defaut du
  * serveur, y compris `23514` sur une colonne de texte (ERD, Codes d'erreur).
+ * Une relecture vide veut dire que le compte a ete retire apres `add_item` :
+ * l'article reste (Q-8, D-066), la transaction valide, et le compte, qui ne peut
+ * plus le relire sous RLS, recoit NO_HOUSEHOLD.
  */
 export async function addItem(userId: string, input: { name: string; quantity: string | null }): Promise<Result<Item>> {
   try {
@@ -109,8 +112,7 @@ export async function addItem(userId: string, input: { name: string; quantity: s
       );
       return result.rows[0];
     });
-    if (!row) throw new Error("article ajoute mais illisible");
-    return ok(toItem(row));
+    return row ? ok(toItem(row)) : fail(noHousehold());
   } catch (error) {
     switch (sqlState(error)) {
       case "LC008":
