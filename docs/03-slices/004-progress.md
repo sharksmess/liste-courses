@@ -5,8 +5,8 @@ Tenu par l'implementeur apres **chaque commit**. C'est ce fichier, pas la conver
 ## Etat
 - Statut : ouverte
 - Branche : slice/004-membres
-- Dernier commit : ouverture de la tranche
-- Prochaine etape : `test-writer`
+- Dernier commit : tests de la tranche ecrits (2309b78), tous rouges pour la bonne raison
+- Prochaine etape : migration (remove_member, leave_household), puis lib/members.ts, routes, ecran, memberMutationEffect. Journal d essai : .logs/004-test-writer-3.log (78 rouges, 397 verts)
 
 ## Couches
 - [ ] Migration
