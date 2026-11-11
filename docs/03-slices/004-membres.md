@@ -58,49 +58,49 @@ La source de verite est `docs/02-architecture/api-contracts/members.ts`. Ordre d
 
 ## Criteres d'acceptation
 <!-- Format lu par scripts/close-slice.sh : « - [ ] AC1 — titre », coche « - [x] » une fois prouve. -->
-- [ ] AC1 — **Voir les membres** (US-10.1, US-10.2)
+- [x] AC1 — **Voir les membres** (US-10.1, US-10.2)
   - Un membre et la responsable recoivent la meme liste : `memberId`, `name`, `role`, et rien d'autre.
   - La responsable y figure avec le role `owner`, chaque autre personne avec `member`.
   - L'ordre est celui de l'entree dans le foyer (`joined_at` puis `id`).
   - Aucune adresse e-mail ni identifiant de compte dans la reponse.
   - La reponse porte `Cache-Control: no-store`.
-- [ ] AC2 — **Retirer un membre** (US-12.1, US-12.2, ADR-0002)
+- [x] AC2 — **Retirer un membre** (US-12.1, US-12.2, ADR-0002)
   - La responsable recoit `200 { removed: true }`. En base, l'appartenance a disparu, `member_count` baisse de 1 et egale le nombre de lignes.
   - **Coupure immediate** : la session encore ouverte du membre retire, avec le meme cookie, recoit a sa requete suivante `403 NO_HOUSEHOLD` sur `GET`, `POST`, `PATCH` et `DELETE` des articles, sur `GET` des membres et sur `POST leave`. `GET /api/me` rend `household: null`, et `/household` mene a `/no-household`.
   - Les articles de la personne retiree restent, cochables et supprimables par les autres, avec son prenom.
   - `item_count` ne change pas.
-- [ ] AC3 — **Quitter le foyer** (US-13.1, US-13.2)
+- [x] AC3 — **Quitter le foyer** (US-13.1, US-13.2)
   - Un membre recoit `200 { left: true }`. En base, l'appartenance a disparu, `member_count` baisse de 1 et egale le nombre de lignes.
   - Sa session ouverte recoit `403 NO_HOUSEHOLD` sur la liste, et `/household` mene a `/no-household`.
   - Ses articles restent, avec son prenom. `item_count` ne change pas.
   - Un rejeu donne `403 NO_HOUSEHOLD`, sans autre effet.
-- [ ] AC4 — **Refus et ordre de verification** (US-12.3, US-12.4, US-13.3, D-010, ADR-0003)
+- [x] AC4 — **Refus et ordre de verification** (US-12.3, US-12.4, US-13.3, D-010, ADR-0003)
   - Sans session, les trois routes donnent `401 UNAUTHENTICATED`, y compris avec un `:memberId` mal forme.
   - Un compte sans foyer recoit `403 NO_HOUSEHOLD` sur les trois routes, y compris avec un `:memberId` mal forme.
   - Un membre qui tente de retirer quelqu'un, la responsable comprise, recoit `403 INSUFFICIENT_ROLE`, y compris avec un `:memberId` mal forme ou inexistant, et la cible reste dans le foyer.
   - La responsable qui vise sa propre ligne recoit `409 OWNER_CANNOT_BE_REMOVED`, et reste.
   - La responsable qui tente de quitter recoit `409 OWNER_CANNOT_LEAVE`, et reste.
   - `:memberId` mal forme, inexistant ou deja retire donne `404 MEMBER_NOT_FOUND`, et un rejeu de retrait aussi.
-- [ ] AC5 — **Isolation tenant (entre foyers, le foyer etant le tenant, ADR-0002)**, avec deux foyers reels A et B, chacun avec sa responsable et un membre :
+- [x] AC5 — **Isolation tenant (entre foyers, le foyer etant le tenant, ADR-0002)**, avec deux foyers reels A et B, chacun avec sa responsable et un membre :
   - Par l'API, `GET members` de A ne montre aucun membre de B, ni sa page.
   - La responsable de A qui vise un membre de B, ou la responsable de B, recoit `404 MEMBER_NOT_FOUND`, avec exactement le meme statut et le meme corps qu'un identifiant inexistant ou mal forme. La cible reste dans B, et `member_count` de B ne change pas.
   - Directement en base sous `lc_app`, avec `app.user_id` de A : `SELECT` sur `lc.membership` ne rend aucune ligne de B, y compris avec un `app.household_id` force sur B, qui est ignore.
   - `remove_member` sous `app.user_id` de A, avec un `app.household_id` force sur B et l'identifiant d'un membre de B, leve `LC006` et ne touche rien.
   - `leave_household` d'un membre de A, avec un `app.household_id` force sur B, ne quitte que A.
   - `member_count` de A et de B restent chacun egaux au nombre de leurs lignes.
-- [ ] AC6 — **Retour apres un depart et prenom conserve** (US-12.6, US-06.2, D-009)
+- [x] AC6 — **Retour apres un depart et prenom conserve** (US-12.6, US-06.2, D-009)
   - Une personne retiree peut creer un foyer.
   - Une personne retiree ou partie peut rejoindre un autre foyer, ou le meme avec le code en vigueur, et retrouve la liste de ce foyer.
   - **US-06.2 de bout en bout** : un article ajoute par une personne retiree, et un autre par une personne partie, sont rendus par `GET items` et sur la page avec son prenom, pour les membres restants, apres son depart.
   - Le foyer quitte laisse une place : un foyer de 10 membres en accepte un nouveau apres un depart.
-- [ ] AC7 — **Concurrence** (ERD §5). Requetes simultanees reelles sur la vraie base, jamais de mock.
+- [x] AC7 — **Concurrence** (ERD §5). Requetes simultanees reelles sur la vraie base, jamais de mock.
   - Deux retraits paralleles du meme membre : un `200`, un `404`, et le compteur ne baisse qu'une fois.
   - Deux departs paralleles du meme membre : un `200`, un `403 NO_HOUSEHOLD`.
   - Un retrait et un depart paralleles du meme membre : un seul reussit, l'autre recoit son refus typee, et le compteur ne baisse qu'une fois. Aucun 500.
   - Scenario deterministe : un `DELETE` non commite tient la ligne, un retrait concurrent attend, puis recoit `LC006` apres le `COMMIT`.
   - **Borne des membres** : a 10 membres, avec un depart non commite, `join_household` recoit `LC004` tout de suite, puis une adhesion apres le `COMMIT` reussit (meme mecanisme que D-060).
   - Sous la borne, une adhesion attend le depart non commite, puis reussit.
-- [ ] AC8 — **Ecran des membres** (US-10, US-12, US-13), prouve sur la page rendue par le serveur de test (D-053, D-059)
+- [x] AC8 — **Ecran des membres** (US-10, US-12, US-13), prouve sur la page rendue par le serveur de test (D-053, D-059)
   - `/household` montre `<ul data-testid="member-list">` avec un `<li data-testid="member-row">` par membre, qui porte `data-role="owner"` ou `"member"` et montre le prenom ; la responsable est designee en toutes lettres.
   - La page de la responsable montre un bouton « Retirer » sur chaque ligne de membre et aucun sur la sienne, ni « Quitter le foyer ».
   - La page d'un membre montre « Quitter le foyer » et aucun bouton « Retirer ».
@@ -108,7 +108,7 @@ La source de verite est `docs/02-architecture/api-contracts/members.ts`. Ordre d
   - Apres un retrait ou un depart par l'API, la page de la responsable ne montre plus la personne, et ses articles restent affiches avec son prenom.
   - La page d'un foyer ne contient aucun membre d'un autre foyer.
   - Les messages de `OWNER_CANNOT_BE_REMOVED`, `OWNER_CANNOT_LEAVE`, `MEMBER_NOT_FOUND` et `NO_HOUSEHOLD` existent et different du message generique. La decision apres une action sur les membres et apres une action sur la liste est une fonction pure testee.
-- [ ] AC9 — **Garanties de la base** (ADR-0005, ERD §1, §3.3, §4.1, §7, `rules/drizzle-postgres.md`)
+- [x] AC9 — **Garanties de la base** (ADR-0005, ERD §1, §3.3, §4.1, §7, `rules/drizzle-postgres.md`)
   - Le test de catalogue de l'usine est vert. Les deux fonctions sont `SECURITY DEFINER`, appartiennent a `lc_definer`, ont leur `search_path` fixe ; `PUBLIC` et `lc_better_auth` ne peuvent pas les executer, `lc_app` le peut.
   - Sans `app.user_id`, chacune leve `LC001`.
   - `remove_member` : sans foyer `LC009` ; appelant membre `LC005`, sans ecriture ; sa propre ligne `LC007` ; cible inexistante, deja partie ou d'un autre foyer `LC006`.
@@ -117,7 +117,7 @@ La source de verite est `docs/02-architecture/api-contracts/members.ts`. Ordre d
   - Apres chaque fonction, `app.household_id` est vide.
   - `lc_app` n'a toujours aucun droit d'ecriture sur `lc.membership`.
   - Aucun message d'erreur de ces fonctions ne contient un nom ou un identifiant de foyer.
-- [ ] AC10 — **Perte du foyer pendant une action sur la liste** (suites de 003, D-025 Q-8, D-061)
+- [x] AC10 — **Perte du foyer pendant une action sur la liste** (suites de 003, D-025 Q-8, D-061)
   - Une adhesion ulterieure laisse `lc.item` intact : un article ajoute avant ou pendant un retrait reste (Q-8, ERD §5).
   - `addItem`, appele au niveau du service pour un compte sans foyer, rend `NO_HOUSEHOLD` et aucune exception (branche `LC009`).
   - La branche ou l'article est enregistre puis illisible rend `NO_HOUSEHOLD` et non une exception : un retrait non commite tient la ligne du foyer, `add_item` attend ce verrou dans son trigger, et la relecture suit le `COMMIT` (review-004, constat 1).
