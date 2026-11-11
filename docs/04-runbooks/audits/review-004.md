@@ -158,3 +158,73 @@ Fragile : l'ordre d'AC1 tient au plan, une acceptation citee a une decision qui 
 Manquant : le test de la branche enregistre puis illisible, le prenom sur la page apres un depart, l'ERD §9 pour les deux fonctions, la mise a jour du backlog.
 
 REVIEW: FAIL
+
+## Second passage, 2026-11-11
+
+Diff `git diff bae7039...HEAD`, relu jusqu'a `ce22019`, soit 9 commits : 4 de `test-writer`, 2 de `slice-implementer`, le reste de l'orchestrateur. Relecture statique : je n'ai lance ni tests, ni serveur, ni requete sur une base. Les mutations ci-dessous sont raisonnees, pas executees. Resultats transmis par l'orchestrateur, non rejoues : 480 tests verts, 174,25 s (`.logs/004-impl-6.log`), `check` propre (`.logs/004-impl-check-2.log`). Ce passage a eu lieu apres la pause de cinq jours, sans la chevaucher (`autonomous-run-2026-11-05.md`). Le decompte tient : 476 + 2 (constat 1) + 1 (ordre d'AC1) + 1 (croisement d'AC6) = 480. Le test d'AC4 a ete remplace, pas ajoute.
+
+### Synthese
+Aucun constat BLOQUANT. Les deux BLOQUANT et les cinq A CORRIGER du premier passage sont traites. Les nouveaux tests peuvent echouer sur le defaut qu'ils visent. Cote code, seuls des commentaires et une espace changent : aucun comportement ne change. Il reste deux details de forme, en suggestion.
+
+### Verification des constats du premier passage
+
+| Constat | Etat | Jugement |
+|---|---|---|
+| 1 Branche enregistre puis illisible | Traite | Voir ci-dessous. |
+| 2 Prenom sur la page | Traite | Voir ci-dessous. |
+| 3 Ordre d'AC1 | Traite, limite ecrite | `tests/members/api.test.ts:44`. Quatre lignes inserees par l'administration, dans l'ordre inverse de leur `joined_at`, dont deux a `joined_at` egal, la plus grande inseree d'abord. Sans `ORDER BY`, l'ordre physique fait echouer le test. Sur `joined_at` seul, l'egalite sort dans l'ordre physique par parcours sequentiel comme par l'index (a `joined_at` egal, l'index range les entrees par adresse physique), donc dans le mauvais ordre : echec. Le test dit ce qu'il ne prouve pas, et c'est exact. |
+| 4 Typecheck rouge | Traite | `004-progress.md` (section Blocages) nomme `50ce0c8` et `b47fda7`, la cause, le commit qui retablit le vert, et la faute d'enchainement par `;`. Il nomme aussi `597922c`, qui ne compilait pas seul, corrige par `b568046`. `FRICTION.md` : trois lignes, dont la question ouverte pour `rules/git.md` (tests d'abord, couche qui compile). Historique non reecrit, ce qui est juste. |
+| 5 ERD §9 | Traite | La puce cite les deux fonctions et leurs codes : `LC007` et `LC006` pour `remove_member`, `LC009` sur zero ligne pour `leave_household`. C'est exact au regard de `0008`. `LC009` et `LC005` de `remove_member` sont levees avant que le contexte soit pose, d'ou leur absence, qui est juste. |
+| 6 Fenetre 404 | Traite | D-067, « a valider », decrit ce qui est vrai : 404 possible, `DELETE` en vol qui peut commiter, requete suivante en 403. L'option ecartee est ecrite. Contrat, journal et en-tete de `lib/items.ts` sont alignes. |
+| 7 Backlog | Traite | Suites de 003 closes avec leurs decisions (D-066, D-067). Restent les vrais restes : details du client, R2, R4. |
+| 8 Croisements d'AC6 | Traite | `api.test.ts:277` : la partie part vers un autre foyer, la retiree revient dans le meme, chacune avec sa liste exacte. |
+| 9 Residuel client | Declare | `evidence/004.md`, « Ce que cette fiche ne prouve pas » : les quatre points, sans detour, avec une liste de visite concrete. |
+| 10 Details de test | Traite | `POST` refuse sans ecriture (`api.test.ts:111`). Le test d'AC4 enchaine cinq refus de nature differente sur un foyer de trois. |
+| 11 Forme | Traite | `errors.ts:34`, index au journal, dernier commit. |
+
+### Constat 1 : le scenario peut-il echouer ?
+Oui, sur chaque defaut vise. Deux tests, `tests/members/service.test.ts:124` (API) et `:153` (service) :
+- **Attente observee** : `waitUntilQueryBlocked` (`tests/helpers/members.ts:85`) attend un `wait_event_type = 'Lock'` sur une session dont la requete contient `lc.add_item`. Il exclut la transaction du retrait et la session de sondage, dont le texte ne contient pas le motif, passe en parametre. La requete ne doit pas aboutir avant le COMMIT (garde de 150 ms). Si l'ajout n'attendait pas, le delai de 10 s fait echouer le test, avec un message net.
+- **Mutants** :
+  - Rendre le `throw` : le service rejette, l'API rend 500, les deux tests echouent.
+  - Annuler l'article : la relecture `itemRowsOf` echoue.
+  - Mauvais code : comparaison de l'objet entier, ou `expectAppError` sur 403 `NO_HOUSEHOLD`.
+  - Compteur faux : `itemCountOf`.
+- **Chemin HTTP** : la verification prealable de la route ne prend aucun verrou et passe, puisque le retrait n'est pas commite. C'est bien `add_item` qui attend. Le scenario prouve donc la reponse reelle d'un client, pas seulement le service.
+- **Nettoyage** : si l'attente n'est pas constatee, le `finally` annule le retrait, ce qui debloque l'ajout. Aucun verrou ne survit au test.
+- **Documents** : AC10 du contrat, ERD §5 (ordre inverse ajoute), en-tete de `lib/items.ts` et fiche disent la meme chose.
+
+La reformulation de la puce d'AC10 par l'orchestrateur rend le critere plus strict : elle retire l'echappatoire « la fiche le declare », que le test rend sans objet. Ce n'est pas un affaiblissement.
+
+### Constat 2 : le prenom sur la page peut-il echouer ?
+Oui. `tests/members/screens.test.ts:153` :
+- Prenoms (`Zelda`, `Ursule`) et articles (`Pommes`, `Farine`) n'ont aucune sous-chaine commune, et la comparaison respecte la casse.
+- Le prenom est cherche dans la ligne `item-row` de son article, pas dans la page.
+- Il est verifie pour la responsable et pour un membre restant.
+- L'autre prenom est exclu de chaque ligne : une inversion des auteurs echouerait aussi.
+- `itemRows` (`:65`) est sain : `item-list.tsx:40` n'imbrique aucun `<li>` dans une ligne. La version de `597922c`, aux antislashs perdus, ne compilait pas : elle ne pouvait donc pas passer en silence, et `b568046` la corrige, commit dedie.
+- Les membres partis sont exclus de `member-row` sur les deux pages.
+
+### Documentation
+- **Registre** : D-067, D-068, D-069 au bon format, marquees « a valider », options ecartees ecrites. D-068 reprend les trois decisions d'ecran que je renvoyais a la cloture.
+- **Journal 06** : indexe, lisible, incidents complets, decisions numerotees. « Relecteurs PASS au second passage » et « tranche close » anticipent ce passage et la cloture, comme pour 002 et 003 ; la formule devient vraie avec ce verdict.
+- **`evidence/004.md`** : `security-auditor` et `contract-guardian` n'ont pas repasse. Le diff de `apps/` le justifie : deux commentaires dans `lib/items.ts` et une espace dans `errors.ts`.
+
+### Constats restants
+
+#### SUGGESTION
+
+##### S1. Note du contrat contredite par D-068
+- **Emplacement** : `docs/03-slices/004-membres.md:139` (« Props du client : `memberId`, `name`, `role`, seulement »).
+- La note est restee telle quelle, alors que `MemberList` recoit aussi `canRemove`, decide par D-068. Un auditeur qui lit le contrat seul voit un ecart sans renvoi. Une mention « voir D-068 » suffit.
+
+##### S2. Coquilles dans le journal de passage
+- **Emplacement** : `docs/04-runbooks/autonomous-run-2026-11-05.md`, lignes ajoutees pour le premier `REVIEW: FAIL` et pour `test-writer` (« d arret », « l API »).
+- Apostrophes perdues, sans effet sur le sens.
+
+### Bilan
+Solide : le scenario du constat 1 observe l'attente et tue le `throw` par l'API et par le service ; le prenom est prouve ligne par ligne pour deux lecteurs ; l'ordre d'AC1 est discriminant ; la documentation est complete et honnete sur ses limites.
+Fragile : le cablage client reste non prouve jusqu'a la visite guidee, comme le declare la fiche (D-059).
+Manquant : rien qui engage la fusion ; deux retouches de forme.
+
+REVIEW: PASS
