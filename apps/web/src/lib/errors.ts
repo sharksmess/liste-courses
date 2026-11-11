@@ -31,7 +31,7 @@ export const insufficientRole = (): ApiError => ({ status: 403, code: "INSUFFICI
 export const inviteCodeInvalid = (): ApiError => ({ status: 404, code: "INVITE_CODE_INVALID" });
 export const itemNotFound = (): ApiError => ({ status: 404, code: "ITEM_NOT_FOUND" });
 export const memberNotFound = (): ApiError => ({ status: 404, code: "MEMBER_NOT_FOUND" });
-export const alreadyInHousehold =(): ApiError => ({ status: 409, code: "ALREADY_IN_HOUSEHOLD" });
+export const alreadyInHousehold = (): ApiError => ({ status: 409, code: "ALREADY_IN_HOUSEHOLD" });
 export const householdFull = (): ApiError => ({ status: 409, code: "HOUSEHOLD_FULL" });
 export const itemLimitReached = (): ApiError => ({ status: 409, code: "ITEM_LIMIT_REACHED" });
 export const ownerCannotBeRemoved = (): ApiError => ({ status: 409, code: "OWNER_CANNOT_BE_REMOVED" });

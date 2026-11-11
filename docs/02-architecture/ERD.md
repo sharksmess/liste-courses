@@ -660,6 +660,10 @@ articles) :
   La borne tient, et la place n'est liberee qu'au `COMMIT` du depart (D-060).
 - **Retrait et ajout non commite du meme auteur** (tranche 004) : le retrait attend le verrou du
   foyer tenu par l'ajout, puis aboutit ; l'article reste (Q-8).
+- **Ajout concurrent d'un retrait non commite de son auteur** (tranche 004) : ordre inverse.
+  `add_item` voit encore l'appartenance, insere l'article, et son trigger attend le verrou du foyer
+  tenu par le retrait. Apres le `COMMIT` du retrait, l'ajout se termine : la relecture ne rend aucune
+  ligne, l'article reste, et la requete recoit `NO_HOUSEHOLD` (D-066).
 - **Derive du compteur** : impossible par construction (seuls `INSERT` et `DELETE` le modifient, sous
   trigger). Les tests d'integration verifient apres chaque scenario `member_count = count(membership)`
   et `item_count = count(item)` pour le foyer.
@@ -828,6 +832,7 @@ Ecarts a la specification, tous mineurs :
   critere AC9). Dans `regenerate_invite_code`, un tirage egal au code en vigueur compte parmi les
   5 essais : la boucle reste bornee.
 - **§4.1 point 3, sortie en erreur** : la remise a vide de `app.household_id` n'a lieu qu'a la sortie
-  normale. Sur erreur, `add_item` (`LC008`, `23514`) rend la main sans la faire : l'exception annule
+  normale. Sur erreur, `add_item` (`LC008`, `23514`), `remove_member` (`LC007`, `LC006`) et
+  `leave_household` (`LC009` sur zero ligne supprimee) rendent la main sans la faire : l'exception annule
   la transaction, ou revient au point de sauvegarde de l'appelant, ce qui retablit la valeur d'alors.
   Aucune instruction ne peut donc voir le foyer pose par la fonction.
