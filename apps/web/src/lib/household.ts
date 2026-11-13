@@ -20,7 +20,7 @@ interface SummaryRow {
   role: string;
 }
 
-function toRole(role: string): HouseholdRole {
+export function toRole(role: string): HouseholdRole {
   if (role === "owner" || role === "member") return role;
   // membership_role_check l'interdit en base : invariant rompu.
   throw new Error("role d'appartenance inattendu");

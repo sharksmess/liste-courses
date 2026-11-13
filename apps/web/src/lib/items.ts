@@ -7,9 +7,9 @@
  * Le foyer et l'action sont lus dans la meme transaction : `NULL` donne
  * NO_HOUSEHOLD, zero ligne touchee donne ITEM_NOT_FOUND. Un compte sans foyer des
  * le debut de la transaction n'obtient donc pas 404. En READ COMMITTED, chaque
- * instruction relit l'appartenance : apres la coupure de 004, aucune ecriture ne
- * passe ; un retrait survenu entre les deux instructions donne 404 au lieu de
- * 403, sans rien reveler.
+ * instruction relit l'appartenance. Pendant un retrait, une requete deja en vol
+ * peut recevoir 404 au lieu de 403, sans rien reveler, et un DELETE en vol peut
+ * encore commiter juste apres le retrait. La requete suivante recoit 403 (D-067).
  */
 import type { PoolClient } from "pg";
 import { sqlState, withUser } from "./db";
@@ -95,6 +95,10 @@ export function findItem(userId: string, itemId: string): Promise<Result<Item>> 
  * transaction. `LC008` et `LC009` (foyer perdu depuis la verification de la
  * route) deviennent des erreurs typees ; toute autre erreur est un defaut du
  * serveur, y compris `23514` sur une colonne de texte (ERD, Codes d'erreur).
+ * Une relecture vide veut dire que le compte a ete retire pendant `add_item` :
+ * cette branche est atteinte quand le trigger attend le verrou du foyer tenu par
+ * un retrait non commite. L'article reste (Q-8, D-066), la transaction valide, et
+ * le compte, qui ne peut plus le relire sous RLS, recoit NO_HOUSEHOLD.
  */
 export async function addItem(userId: string, input: { name: string; quantity: string | null }): Promise<Result<Item>> {
   try {
@@ -109,8 +113,7 @@ export async function addItem(userId: string, input: { name: string; quantity: s
       );
       return result.rows[0];
     });
-    if (!row) throw new Error("article ajoute mais illisible");
-    return ok(toItem(row));
+    return row ? ok(toItem(row)) : fail(noHousehold());
   } catch (error) {
     switch (sqlState(error)) {
       case "LC008":

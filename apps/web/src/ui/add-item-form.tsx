@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import type { z } from "zod";
 import type { addItem } from "@/lib/contracts";
-import { messageFor } from "./messages";
+import { itemMutationEffect } from "./messages";
 import { formText, postJson } from "./requests";
 
 /** Corps de POST, sur l'entree du contrat : une faute de cle echoue a la compilation. */
@@ -25,12 +25,10 @@ export function AddItemForm() {
     const body: AddItemBody = { name: formText(data, "name"), quantity: formText(data, "quantity") };
     const outcome = await postJson("/api/household/items", body);
     setPending(false);
-    if (outcome.ok) {
-      form.reset();
-      router.refresh();
-      return;
-    }
-    setError(messageFor(outcome.status, outcome.code));
+    if (outcome.ok) form.reset();
+    const effect = itemMutationEffect(outcome);
+    setError(effect.message);
+    if (effect.refresh) router.refresh();
   }
 
   return (

@@ -651,6 +651,19 @@ articles) :
   verrou. La borne tient, et la place n'est liberee qu'au `COMMIT` de la suppression (US-09.3).
 - **Ajout d'un article concurrent au retrait de son auteur** : l'ajout peut commiter juste apres le
   retrait ; l'article reste, comme tout article d'une personne retiree (US-12.2). Accepte (Q-8).
+- **Retrait et depart concurrents du meme membre** (tranche 004) : le second `DELETE` attend le verrou
+  de la ligne `membership`, puis ne touche aucune ligne apres le `COMMIT` du premier. Un retrait
+  recoit `LC006`, un depart `LC009` : un seul reussit, et le compteur ne baisse qu'une fois.
+- **Adhesion et depart non commite** (tranche 004) : meme mecanisme que l'article. Sous la borne,
+  l'adhesion attend le verrou du foyer, puis reussit. A 10 membres, `join_household` recoit `LC004`
+  tout de suite : le `CHECK` est evalue sur la version de son instantane avant d'attendre le verrou.
+  La borne tient, et la place n'est liberee qu'au `COMMIT` du depart (D-060).
+- **Retrait et ajout non commite du meme auteur** (tranche 004) : le retrait attend le verrou du
+  foyer tenu par l'ajout, puis aboutit ; l'article reste (Q-8).
+- **Ajout concurrent d'un retrait non commite de son auteur** (tranche 004) : ordre inverse.
+  `add_item` voit encore l'appartenance, insere l'article, et son trigger attend le verrou du foyer
+  tenu par le retrait. Apres le `COMMIT` du retrait, l'ajout se termine : la relecture ne rend aucune
+  ligne, l'article reste, et la requete recoit `NO_HOUSEHOLD` (D-066).
 - **Derive du compteur** : impossible par construction (seuls `INSERT` et `DELETE` le modifient, sous
   trigger). Les tests d'integration verifient apres chaque scenario `member_count = count(membership)`
   et `item_count = count(item)` pour le foyer.
@@ -786,7 +799,7 @@ schema `@lc/db/schema` declare par `pgSchema("lc_auth")`) et `advanced.database.
 
 ---
 
-## 9. Implementation (tranches 001 a 003) et ecarts
+## 9. Implementation (tranches 001 a 004) et ecarts
 
 Migrations (`packages/db/migrations`, journal Drizzle, appliquees par `src/migrate.ts` avec le
 migrateur de drizzle-orm ; historique dans le schema `drizzle`) :
@@ -801,6 +814,7 @@ migrateur de drizzle-orm ; historique dans le schema `drizzle`) :
 | `0005_join_invite_code.sql` | `--custom` | tranche 002 : `join_household`, `get_invite_code`, `regenerate_invite_code` (§4.4, §4.5) ; aucune table, politique ni role |
 | `0006_item.sql` | generee | tranche 003 : table `lc.item`, ses contraintes, cles `RESTRICT` et `item_household_order_idx` (§3.5) |
 | `0007_item_rls_functions.sql` | `--custom` | tranche 003 : proprietaire, RLS forcee, privileges et cinq politiques de `lc.item` ; `item_count_trg` et son trigger, `add_item` (§4.8, §4.9) |
+| `0008_member_functions.sql` | `--custom` | tranche 004 : `remove_member`, `leave_household` (§4.6, §4.7) ; aucune table, politique ni role |
 
 Ecarts a la specification, tous mineurs :
 - **Variable de connexion de better-auth** : `AUTH_DATABASE_URL` (contrat de tranche), pas
@@ -818,6 +832,7 @@ Ecarts a la specification, tous mineurs :
   critere AC9). Dans `regenerate_invite_code`, un tirage egal au code en vigueur compte parmi les
   5 essais : la boucle reste bornee.
 - **§4.1 point 3, sortie en erreur** : la remise a vide de `app.household_id` n'a lieu qu'a la sortie
-  normale. Sur erreur, `add_item` (`LC008`, `23514`) rend la main sans la faire : l'exception annule
+  normale. Sur erreur, `add_item` (`LC008`, `23514`), `remove_member` (`LC007`, `LC006`) et
+  `leave_household` (`LC009` sur zero ligne supprimee) rendent la main sans la faire : l'exception annule
   la transaction, ou revient au point de sauvegarde de l'appelant, ce qui retablit la valeur d'alors.
   Aucune instruction ne peut donc voir le foyer pose par la fonction.

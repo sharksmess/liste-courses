@@ -12,9 +12,12 @@ export type ApiError =
   | { status: 403; code: "INSUFFICIENT_ROLE" }
   | { status: 404; code: "INVITE_CODE_INVALID" }
   | { status: 404; code: "ITEM_NOT_FOUND" }
+  | { status: 404; code: "MEMBER_NOT_FOUND" }
   | { status: 409; code: "ALREADY_IN_HOUSEHOLD" }
   | { status: 409; code: "HOUSEHOLD_FULL" }
   | { status: 409; code: "ITEM_LIMIT_REACHED" }
+  | { status: 409; code: "OWNER_CANNOT_BE_REMOVED" }
+  | { status: 409; code: "OWNER_CANNOT_LEAVE" }
   | { status: 422; code: "VALIDATION_FAILED"; fields: string[] };
 
 export type Result<T> = { ok: true; value: T } | { ok: false; error: ApiError };
@@ -27,9 +30,12 @@ export const noHousehold = (): ApiError => ({ status: 403, code: "NO_HOUSEHOLD" 
 export const insufficientRole = (): ApiError => ({ status: 403, code: "INSUFFICIENT_ROLE" });
 export const inviteCodeInvalid = (): ApiError => ({ status: 404, code: "INVITE_CODE_INVALID" });
 export const itemNotFound = (): ApiError => ({ status: 404, code: "ITEM_NOT_FOUND" });
+export const memberNotFound = (): ApiError => ({ status: 404, code: "MEMBER_NOT_FOUND" });
 export const alreadyInHousehold = (): ApiError => ({ status: 409, code: "ALREADY_IN_HOUSEHOLD" });
 export const householdFull = (): ApiError => ({ status: 409, code: "HOUSEHOLD_FULL" });
 export const itemLimitReached = (): ApiError => ({ status: 409, code: "ITEM_LIMIT_REACHED" });
+export const ownerCannotBeRemoved = (): ApiError => ({ status: 409, code: "OWNER_CANNOT_BE_REMOVED" });
+export const ownerCannotLeave = (): ApiError => ({ status: 409, code: "OWNER_CANNOT_LEAVE" });
 /** Noms des champs en cause, jamais leur valeur (ADR-0006). */
 export const validationFailed = (fields: string[]): ApiError => ({ status: 422, code: "VALIDATION_FAILED", fields });
 
