@@ -60,7 +60,7 @@ Toutes interrogees au registre le 2026-10-30 (`pnpm view <paquet> dist-tags`, `p
 
 | Paquet | Version | Publiee le | Licence | Ou | Besoin | Alternative ecartee |
 |---|---|---|---|---|---|---|
-| next | 16.4.3 | 2026-10-23 | MIT | web | cadre (ADR-0001) | — (socle gele) |
+| next | **16.4.5** (16.4.3 jusqu'au 2026-11-24, D-073, D-074) | 2026-11-03 | MIT | web | cadre (ADR-0001) | — (socle gele) |
 | react, react-dom | 19.3.1 | 2026-10-14 | MIT | web | rendu (pair de next) | — |
 | better-auth | 1.7.14 | 2026-10-26 | MIT | web | authentification (ADR-0003) | auth maison, Clerk (ADR-0003) |
 | drizzle-orm | 0.45.4 | 2026-10-08 | Apache-2.0 | web, db | schema, migrateur, adaptateur better-auth (pair `^0.45.2`) | SQL brut seul : pas d'adaptateur better-auth qui qualifie le schema `lc_auth` |
@@ -88,6 +88,8 @@ Non installe : `@playwright/test` (D-027). Aucun `dotenv` : le migrateur lit `DA
 `pnpm audit --prod` : « No known vulnerabilities found », code 0. Le seul avis releve a l'installation, GHSA-67mh-4wv8-2f99 (`esbuild <= 0.24.2`, serveur de developpement d'esbuild, modere), arrivait par `apps__web>better-auth>drizzle-kit>@esbuild-kit/esm-loader>@esbuild-kit/core-utils>esbuild` (pair optionnel de better-auth) ; il est corrige par l'override ci-dessous.
 
 **Overrides (securite)** — 2026-10-30, D-038 (humain) : `esbuild: ">=0.25.0"` dans `pnpm-workspace.yaml`, avis GHSA-67mh-4wv8-2f99, chemin ci-dessus. Apres `pnpm install` : esbuild resolu en 0.25.12 et 0.28.2, `pnpm audit --prod` « No known vulnerabilities found » (code 0), `pnpm peers check` sans probleme, `pnpm run check`, `pnpm test` (111 tests) et `bash scripts/ci-build.sh` verts.
+
+**Correctifs de securite hors tranche** — 2026-11-24, D-073 (humain) et D-074 (agent) : `next` 16.4.3 → **16.4.5** dans `apps/web/package.json` (branche `fix/next-16.4.5`), pour les sept avis moderes de `pnpm audit` qui touchent 16.4.3, tous corriges en 16.4.5 (plages au plus `>=16.0.0 <=16.4.4`) : GHSA-mfr8-8qww-v76h, GHSA-vc7v-qv4w-wrv8, GHSA-7qx7-33qx-rqx2, GHSA-f3mh-rxg3-f5g2, GHSA-pc58-hwjq-p385, GHSA-rhh4-g77r-r9qj, GHSA-vvgp-ww4w-46vf. `next build` refusait de tourner sur 16.4.3 (`SecurityFatalError`). Le lockfile ne change que pour `next`, `/env` et `/swc-*`. Apres `pnpm i` : `pnpm test` 480 tests verts, `pnpm run check` propre, `pnpm audit --prod --audit-level=high` propre ; reste l'avis `minimatch` ecarte par D-051. `eslint-config-next` reste en 16.4.3 (aucun avis, consigne de l'humain : aucune autre dependance).
 
 ## Consequences acceptees
 - Deux outils restent une ligne majeure derriere `latest` jusqu'a la reevaluation.
