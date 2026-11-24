@@ -79,14 +79,22 @@ Regroupements :
 - **Squelette de `POST` recopie** dans les Route Handlers : `readJson` et `failedFields` sont factorises dans `lib/request.ts` (tranche 003), l'enchainement session, foyer, validation, reponse reste recopie. A factoriser si 004 ajoute une troisieme copie du meme enchainement (review-002, suggestion 9 ; review-003, point 7).
 - **`10` en dur dans le message `HOUSEHOLD_FULL`** (`ui/messages.ts`) : retirer le nombre ou noter le couplage avec `household_member_limit` (review-002, suggestion 12).
 - **Renforts AC8** : verifier que le code de la responsable figure dans une balise `<script>` de sa propre page, et faire une requete `RSC: 1` cote membre (review-002, suggestion 13).
-- **Cablage client des ecrans** : chemin, cle `code`, affichage de l'erreur et `router.refresh()` n'ont aucune preuve automatique sans robot de navigateur (D-027). A verifier a la visite guidee apres 004 (D-053, D-057).
+- **Cablage client des ecrans** : chemin, cle `code`, affichage de l'erreur et `router.refresh()` n'ont aucune preuve automatique sans robot de navigateur (D-027). **Fait** a la visite guidee du 2026-11-13 (D-075) : adhesion refusee puis reussie, regeneration et refus de l'ancien code traces au journal du serveur ; affichage des erreurs et des ecrans sur attestation de l'humain. Reste l'adhesion avec le nouveau code : voir « Suites de la visite guidee de 002 a 004 ».
 
 ## Suites de la tranche 003 (audit-003, review-003)
 Les suites propres aux departs ont ete closes en 004 (D-066, D-067). Restent :
-- **Details du client a juger a la visite guidee apres 004** : un seul `pendingId` pour toute la liste, fenetre entre la fin de la requete et la fin du `refresh`, erreur qui persiste jusqu'a l'action suivante (review-003, suggestion 9 ; D-059).
+- **Details du client** : un seul `pendingId` pour toute la liste, fenetre entre la fin de la requete et la fin du `refresh`, erreur qui persiste jusqu'a l'action suivante (review-003, suggestion 9 ; D-059). Non atteste a la visite guidee du 2026-11-13 : renvoye a « Suites de la visite guidee de 002 a 004 », point 4.
 - **Double suppression observee sur la base seulement** : le scenario deterministe de `limit-concurrency.test.ts` execute le `DELETE` en SQL direct. Pour lier la preuve a `deleteItem` : tenir la suppression dans `openAppTx`, envoyer le `DELETE` HTTP, constater son attente, commiter, exiger le 404 (review-003, R2).
 - **Commentaire inexact** dans le test S2 de `limit-concurrency.test.ts` : « une attente suivie d'un refus » ; un ajout qui attendrait une suppression commitee reussirait (review-003, R4). Retouche dans un commit `test(...)` dedie.
 - **Corps de requete non borne** : la suite de 002 vaut aussi pour `POST` et `PATCH /api/household/items` ; sur `PATCH`, le corps est lu avant la verification du foyer, et un compte sans foyer suffit (audit-003, MINEUR-1).
+
+## Suites de la visite guidee de 002 a 004 (D-075)
+Visite faite par l'humain le 2026-11-13, verdict conforme (`docs/00-context/journal/07-visite-guidee-002-004.md`). Ces points n'y ont pas ete faits ; ils ne bloquent rien et sont **a voir a la prochaine visite ou avant toute mise en ligne**.
+1. **Article deja supprime depuis l'autre fenetre** : l'affichage du message de `ITEM_NOT_FOUND` n'a pas ete vu (aucun `DELETE` → 404 au journal du serveur ; evidence/003.md, point 5).
+2. **Article d'un membre parti, encore affiche avec son prenom** : aucun article n'existait au moment du retrait. Prouve par les tests (US-06.2), pas vu a l'ecran (evidence/004.md, points 3 et 5).
+3. **Rejoindre avec le nouveau code apres la regeneration** : le journal du serveur s'arrete au refus de l'ancien. Prouve par les tests d'API (evidence/002.md, point 5 ; evidence/004.md, point 6).
+4. **Clics rapides sur plusieurs lignes** : blocage de ligne (`pendingId` unique) et erreur qui persiste jusqu'a l'action suivante, non attestes (review-003, suggestion 9 ; evidence/003.md, point 8).
+5. **Bornes** (10 membres, 200 articles, longueur des noms) : ecartees de la visite par l'orchestrateur, couvertes par les tests (evidence/002.md, point 4 ; evidence/003.md, points 6 et 7 ; evidence/004.md, point 7).
 
 ## Hors backlog (hors perimetre du PRD)
 Recuperation de mot de passe, suppression de compte et RGPD (R1), notifications, temps reel, plusieurs listes, historique, transfert du role de responsable, modification d'un article ou du prenom. Tout ajout passe par une mise a jour du PRD et une decision humaine.
